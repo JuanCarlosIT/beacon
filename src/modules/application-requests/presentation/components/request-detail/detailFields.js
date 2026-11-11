@@ -11,6 +11,20 @@ const MISSING = 'No registrado en la captura original';
 const moneyOr = (value, fallback, suffix = 'MXN') =>
   value == null ? fallback : `${formatMoney(value)} ${suffix}`;
 
+// Estado del último aviso por WhatsApp, tal como lo registró el backend.
+const NOTICE_TEXT = {
+  sent: (detail) => `Enviado a ${detail}`,
+  failed: (detail) => `No se envió: ${detail}`,
+};
+const noticeMoment = (value) =>
+  new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(
+    new Date(value),
+  );
+export const noticeLabel = (notice) =>
+  notice
+    ? `${NOTICE_TEXT[notice.status](notice.detail)} · ${noticeMoment(notice.at)}`
+    : 'Todavía no se ha enviado';
+
 export const detailSections = (data) => [
   {
     icon: ClipboardList,
@@ -22,6 +36,7 @@ export const detailSections = (data) => [
       ['Solicitante', data.requested_by],
       ['Tratamiento', data.treatment || 'No especificado', true],
       ['Observaciones', data.notes || 'Sin observaciones', true],
+      ['Aviso por WhatsApp', noticeLabel(data.notice), true],
     ],
   },
   {
