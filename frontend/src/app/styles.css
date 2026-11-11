@@ -1,0 +1,79 @@
+/* Único archivo CSS de la app: solo carga Tailwind y su tema. Todo el diseño va en clases de Tailwind.
+   Los colores gab-* apuntan a las variables --gab-* que pone getGabThemeStyle (claro u oscuro). */
+@import 'tailwindcss';
+
+@theme inline {
+  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-title: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --color-gab-bg: var(--gab-bg);
+  --color-gab-surface: var(--gab-surface);
+  --color-gab-ink: var(--gab-ink);
+  --color-gab-muted: var(--gab-muted);
+  --color-gab-line: var(--gab-line);
+  --color-gab-accent: var(--gab-accent);
+  --color-gab-accent-ink: var(--gab-accent-ink);
+  --color-gab-accent-soft: var(--gab-accent-soft);
+  --color-gab-ok: var(--gab-ok);
+  --color-gab-ok-bg: var(--gab-ok-bg);
+  --color-gab-bad: var(--gab-bad);
+  --color-gab-bad-bg: var(--gab-bad-bg);
+  --color-gab-warn: var(--gab-warn);
+  --color-gab-warn-bg: var(--gab-warn-bg);
+  --color-gab-gris: var(--gab-gris);
+  --color-gab-gris-bg: var(--gab-gris-bg);
+
+  /* Animación del ícono de «Registrar solicitud» al pasar el mouse. */
+  --animate-gab-saved-box: gab-saved-box 1s cubic-bezier(0.5, 0, 0.25, 1) forwards;
+  --animate-gab-saved-top: gab-saved-top 1s cubic-bezier(0.5, 0, 0.25, 1) forwards;
+  --animate-gab-saved-bottom:
+    gab-saved-bottom 1s cubic-bezier(0.5, 0, 0.25, 1) forwards,
+    gab-saved-bottom-2 1s cubic-bezier(0.5, 0, 0.25, 1) 0.75s;
+
+  @keyframes gab-saved-box {
+    33.333% {
+      transform: rotate(0deg) translate(1px, 2px) scale(1.75);
+    }
+    66.666% {
+      transform: rotate(20deg) translate(2px, -2px) scale(0.75);
+    }
+    100% {
+      transform: rotate(0deg) translate(0, 0) scale(1);
+    }
+  }
+  @keyframes gab-saved-top {
+    33.333% {
+      transform: rotate(0deg) translate(1px, 2px) scale(1.75);
+      d: path('M 3 5 L 3 8 L 3 8');
+    }
+    66.666% {
+      transform: rotate(20deg) translate(2px, -2px) scale(0.75);
+    }
+    100% {
+      transform: rotate(0deg) translate(0, 0) scale(1);
+    }
+  }
+  @keyframes gab-saved-bottom {
+    33.333% {
+      transform: rotate(0deg) translate(1px, 2px) scale(1.75);
+      d: path('M 17 20 L 17 13 L 7 13 L 7 20');
+    }
+    66.666% {
+      transform: rotate(20deg) translate(2px, -2px) scale(0.75);
+    }
+    100% {
+      transform: rotate(0deg) translate(0, 0) scale(1);
+      d: path('M 17 21 L 17 21 L 7 21 L 7 21');
+    }
+  }
+  @keyframes gab-saved-bottom-2 {
+    from {
+      d: path('M 17 21 L 17 21 L 7 21 L 7 21');
+    }
+    to {
+      transform: rotate(0deg) translate(0, 0) scale(1);
+      d: path('M 17 20 L 17 13 L 7 13 L 7 20');
+    }
+  }
+}

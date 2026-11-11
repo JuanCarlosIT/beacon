@@ -1,0 +1,12 @@
+node_modules/
+dist/
+**/.env
+backend/storage/uploads/
+backend/storage/backups/
+backend/.docker/
+*.log
+test-results/
+playwright-report/
+
+# Certificado https local (llaves privadas)
+frontend/certs/

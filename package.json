@@ -1,0 +1,24 @@
+{
+  "name": "gab-aplicaciones-aereas",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "whatsapp:buttons:prepare": "node scripts/evolution-buttons/prepare.mjs",
+    "whatsapp:buttons:test": "node --test scripts/evolution-buttons/patch.test.mjs",
+    "whatsapp:buttons:image": "node scripts/evolution-buttons/build-test-image.mjs",
+    "db:up": "node backend/scripts/postgres-local.mjs up",
+    "db:status": "node backend/scripts/postgres-local.mjs status",
+    "db:stop": "node backend/scripts/postgres-local.mjs stop",
+    "dev": "node scripts/run-project.mjs dev",
+    "dev:server": "node scripts/run-project.mjs dev backend",
+    "dev:client": "node scripts/run-project.mjs dev frontend",
+    "build": "node scripts/run-project.mjs build",
+    "start": "node scripts/run-project.mjs start",
+    "prelocal": "npm run build",
+    "local": "node scripts/run-project.mjs start",
+    "test": "node scripts/run-project.mjs test",
+    "format": "node scripts/run-project.mjs format",
+    "format:check": "node scripts/run-project.mjs format:check"
+  }
+}
