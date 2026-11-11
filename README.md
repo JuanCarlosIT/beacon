@@ -2,6 +2,9 @@
 
 Contexto del proyecto, ubicación exacta, estado y pendientes: **[CONTEXTO_APP_WEB.md](CONTEXTO_APP_WEB.md)**.
 
+> **Repositorios (una rama por módulo, aquí `aplicaciones-aereas`):** este repo ([JuanCarlosIT/beacon](https://github.com/JuanCarlosIT/beacon)) guarda el frontend y la documentación. El backend vive en [JuanCarlosIT/beacon-backend](https://github.com/JuanCarlosIT/beacon-backend); para trabajar local, clónalo dentro de `backend/` con la misma rama:
+> `git clone -b aplicaciones-aereas https://github.com/JuanCarlosIT/beacon-backend.git backend`
+
 React + Tailwind CSS y Express con JavaScript. **`backend/` MVC** y **`frontend/` por módulos con arquitectura limpia**, con instalaciones npm independientes. No utiliza Python.
 
 El módulo contiene solo **Nueva solicitud** y **Solicitudes de aplicación aérea**, sin login, sidebar ni layout global. El formulario es compacto; “¿Qué aplicación necesitas?” es opcional. Los catálogos se leen de Odoo y el historial usa tarjetas en móvil.

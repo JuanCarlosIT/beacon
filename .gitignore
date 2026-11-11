@@ -1,9 +1,8 @@
 node_modules/
 dist/
 **/.env
-backend/storage/uploads/
-backend/storage/backups/
-backend/.docker/
+# El backend es su propio repo (JuanCarlosIT/beacon-backend)
+backend/
 *.log
 test-results/
 playwright-report/
