@@ -1,11 +1,10 @@
 node_modules/
 dist/
-**/.env
-# El backend es su propio repo (JuanCarlosIT/beacon-backend)
-backend/
+.env
+.env.*
 *.log
 test-results/
 playwright-report/
 
 # Certificado https local (llaves privadas)
-frontend/certs/
+certs/

@@ -1,24 +1,30 @@
 {
-  "name": "gab-aplicaciones-aereas",
+  "name": "@gab/frontend",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "whatsapp:buttons:prepare": "node scripts/evolution-buttons/prepare.mjs",
-    "whatsapp:buttons:test": "node --test scripts/evolution-buttons/patch.test.mjs",
-    "whatsapp:buttons:image": "node scripts/evolution-buttons/build-test-image.mjs",
-    "db:up": "node backend/scripts/postgres-local.mjs up",
-    "db:status": "node backend/scripts/postgres-local.mjs status",
-    "db:stop": "node backend/scripts/postgres-local.mjs stop",
-    "dev": "node scripts/run-project.mjs dev",
-    "dev:server": "node scripts/run-project.mjs dev backend",
-    "dev:client": "node scripts/run-project.mjs dev frontend",
-    "build": "node scripts/run-project.mjs build",
-    "start": "node scripts/run-project.mjs start",
-    "prelocal": "npm run build",
-    "local": "node scripts/run-project.mjs start",
-    "test": "node scripts/run-project.mjs test",
-    "format": "node scripts/run-project.mjs format",
-    "format:check": "node scripts/run-project.mjs format:check"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node --test src/modules/application-requests/domain/*.test.js src/modules/application-requests/application/*.test.js tests/*.test.js",
+    "format": "prettier --write src tests package.json vite.config.js",
+    "format:check": "prettier --check src tests package.json vite.config.js"
+  },
+  "dependencies": {
+    "@fontsource/archivo": "^5.3.0",
+    "@fontsource/instrument-sans": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "sweetalert2": "^11.26.25"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.0",
+    "@vitejs/plugin-react": "^4.5.0",
+    "tailwindcss": "^4.1.0",
+    "prettier": "^3.6.2",
+    "vite": "^6.3.5"
   }
 }

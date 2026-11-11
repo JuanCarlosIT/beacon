@@ -1,9 +1,4 @@
 node_modules/
 dist/
-frontend/dist/
-backend/.env
-backend/storage/
-backend/.docker/
-test-results/
-playwright-report/
+certs/
 **/package-lock.json
