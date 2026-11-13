@@ -12,6 +12,17 @@ const supplierHint = (supplier) =>
     ? `${supplierIdentifier(supplier)} · Alta: ${formatDate(supplier.registeredAt)}${supplier.isNew ? ' · Nuevo (últimos 30 días)' : ''}`
     : 'Solo proveedores autorizados para aplicaciones aéreas.';
 
+// Pista de la tarifa: la autorizada del ciclo y qué pasa si se captura una mayor.
+function rateHint(form) {
+  if (!form.draft.cycleId) return 'Elige el ciclo para ver su tarifa autorizada.';
+  if (form.authorizedRate == null)
+    return 'Este ciclo todavía no tiene tarifa autorizada: la tarifa que captures quedará pendiente de autorización.';
+  const authorized = `Tarifa autorizada del ciclo: ${formatMoney(form.authorizedRate)} MXN/ha.`;
+  return form.rateNeedsAuthorization
+    ? `${authorized} Capturaste una mayor: quedará pendiente de autorización antes de continuar.`
+    : `${authorized} Puedes bajarla; subirla pide autorización.`;
+}
+
 function EstimatedSubtotal({ value }) {
   return (
     <div
@@ -23,13 +34,13 @@ function EstimatedSubtotal({ value }) {
         Subtotal estimado <strong className="ml-2 font-mono">{formatMoney(value)} MXN</strong>
       </span>
       <small className="text-[11px] text-gab-muted">
-        Sin impuestos. La OCM requiere aprobación y generación manual.
+        Sin impuestos. La OCM la arma el gestor con las remisiones validadas.
       </small>
     </div>
   );
 }
 
-// Proveedor, periodo, tarifa, subtotal estimado y motivo de la aplicación.
+// Proveedor, periodo, tarifa y subtotal estimado.
 export default function SupplierFields({ form, onAddSupplier }) {
   const { list, catalogLoading, catalogReady, field } = form;
   const canRegisterSupplier = list.supplierPermissions?.canRegister && onAddSupplier;
@@ -90,7 +101,8 @@ export default function SupplierFields({ form, onAddSupplier }) {
         {...field('ratePerHectare')}
         label="Tarifa por hectárea"
         required
-        help="Captura la tarifa acordada por cada hectárea, en pesos mexicanos y sin impuestos. No es el importe total. Ejemplo: 400.00 MXN por ha."
+        help="Se propone la tarifa autorizada del ciclo. Puedes bajarla libremente; si la subes, la solicitud espera a que quien autoriza tarifas la apruebe. Pesos mexicanos por hectárea, sin impuestos."
+        hint={rateHint(form)}
       >
         {(props) => (
           <UnitInput
@@ -103,22 +115,6 @@ export default function SupplierFields({ form, onAddSupplier }) {
         )}
       </FormField>
       <EstimatedSubtotal value={form.subtotal} />
-      <FormField
-        {...field('treatment')}
-        label="¿Qué aplicación necesitas?"
-        wide
-        help="Puedes indicar el motivo o dejarlo vacío. No inventes productos ni dosis; eso corresponde al responsable agronómico."
-      >
-        {(props) => (
-          <input
-            {...props}
-            {...form.bindInput('treatment')}
-            maxLength={500}
-            className={fieldInput}
-            placeholder="Puedes dejarlo vacío"
-          />
-        )}
-      </FormField>
     </>
   );
 }

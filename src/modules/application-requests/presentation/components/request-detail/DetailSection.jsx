@@ -1,7 +1,7 @@
 export const sectionClass = 'border-b border-gab-line py-4 last:border-b-0';
 const sectionTitle = 'flex items-center gap-2 font-title text-[13px] font-semibold text-gab-accent';
 
-export default function DetailSection({ icon: Icon, title, fields }) {
+export default function DetailSection({ icon: Icon, title, fields, children }) {
   return (
     <section className={sectionClass}>
       <h3 className={sectionTitle}>
@@ -12,10 +12,13 @@ export default function DetailSection({ icon: Icon, title, fields }) {
         {fields.map(([label, value, full]) => (
           <div key={label} className={full ? 'col-span-full' : ''}>
             <dt className="text-[11px] text-gab-muted">{label}</dt>
-            <dd className="mt-[3px] text-[13px] font-medium break-words">{value}</dd>
+            <dd className="mt-[3px] text-[13px] font-medium break-words whitespace-pre-line">
+              {value}
+            </dd>
           </div>
         ))}
       </dl>
+      {children}
     </section>
   );
 }

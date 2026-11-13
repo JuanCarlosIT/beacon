@@ -26,20 +26,13 @@ test('render React del detalle y las altas restringidas', async (t) => {
       supplier_name: 'Proveedor de prueba',
       supplier_vat: 'TST010101AB1',
       permissions: { canApprove: false, canCancel: false },
-      purchaseOrder: {
-        enabled: true,
-        status: 'none',
-        requiresApproval: true,
-        canCreate: false,
-        canVerify: false,
-      },
+      purchaseOrder: { enabled: true, status: 'none', stage: 'approval' },
     };
     const renderDetail = (changes = {}) =>
       renderToStaticMarkup(
         React.createElement(RequestDetail, {
           data: { ...data, ...changes },
           onClose() {},
-          onCreatePurchase() {},
           onChangeStatus() {},
           onRequestApproval() {},
         }),
@@ -50,62 +43,112 @@ test('render React del detalle y las altas restringidas', async (t) => {
         .find((element) => element.includes(label));
 
     await t.test(
-      'Solicitada explica el bloqueo y no habilita compra ni aprobación al solicitante',
+      'Solicitada explica que falta autorizar y no ofrece decisiones al solicitante',
       () => {
         const html = renderDetail();
-        assert.match(html, /Pendiente de aprobación/);
-        assert.match(button(html, 'Generar OCM en STAG'), /disabled=""/);
+        assert.match(html, /Primero debe autorizarse la solicitud/);
         assert.ok(!button(html, 'Aprobar solicitud'));
+        assert.ok(!button(html, 'Subir remisión'), 'sin autorizar no se suben remisiones');
+        assert.ok(!html.includes('Generar OCM'), 'la OCM ya no se genera desde el detalle');
         assert.match(html, /TST010101AB1/);
       },
     );
 
     await t.test(
-      'Aprobada habilita generación manual; Cancelada y Realizada no ofrecen nuevas OCM',
+      'la receta y la tarifa pendiente se ven en el detalle; solo quien autoriza tarifas decide',
       () => {
-        const approved = renderDetail({
-          status: 'Aprobada',
-          purchaseOrder: { ...data.purchaseOrder, requiresApproval: false, canCreate: true },
-        });
-        assert.ok(button(approved, 'Generar OCM en STAG'));
-        assert.ok(!button(approved, 'Generar OCM en STAG').includes('disabled=""'));
-        for (const status of ['Cancelada', 'Realizada']) {
-          const html = renderDetail({
-            status,
-            purchaseOrder: { ...data.purchaseOrder, requiresApproval: false },
-          });
-          assert.ok(!button(html, 'Generar OCM en STAG'));
-        }
+        const pending = {
+          rate_per_hectare: 450,
+          authorized_rate: 400,
+          rate_authorization: 'Pendiente',
+          products: [{ odoo_product_id: 9, name: 'Fungicida X', uom: 'L', dose_per_hectare: 1.5 }],
+        };
+        const html = renderDetail(pending);
+        assert.match(html, /Receta de aplicación/);
+        assert.match(html, /Fungicida X/);
+        assert.match(html, /1\.5 L \/ ha/);
+        assert.match(html, /espera autorización/);
+        assert.ok(!button(html, 'Guardar tarifa'), 'sin permiso no se corrige la tarifa');
+        const editable = renderToStaticMarkup(
+          React.createElement(RequestDetail, {
+            data: {
+              ...data,
+              status: 'Aprobada',
+              rate_per_hectare: 400,
+              authorized_rate: 400,
+              permissions: { canEditRate: true },
+            },
+            onClose() {},
+            onCorrectRate() {},
+          }),
+        );
+        assert.match(editable, /Corregir tarifa/);
+        assert.ok(button(editable, 'Guardar tarifa'));
+        assert.ok(!button(html, 'Autorizar tarifa'));
+        const decider = renderToStaticMarkup(
+          React.createElement(RequestDetail, {
+            data: { ...data, ...pending, permissions: { canDecideRate: true } },
+            onClose() {},
+            onDecideRate() {},
+          }),
+        );
+        assert.ok(button(decider, 'Autorizar tarifa'));
+        assert.ok(button(decider, 'Rechazar tarifa'));
       },
     );
 
-    await t.test(
-      'las OCM anteriores conservan enlaces y verificación aunque cambie el estado local',
-      () => {
-        const existing = renderDetail({
-          purchaseOrder: {
-            ...data.purchaseOrder,
-            status: 'created',
-            url: 'https://gab-stag-123.dev.odoo.com/web#id=123',
-            reference: 'OCM-PRUEBA',
-          },
-        });
-        assert.match(existing, /Ver OCM en STAG/);
-        assert.ok(!button(existing, 'Generar OCM en STAG'));
-        const uncertain = renderDetail({
-          status: 'Cancelada',
-          purchaseOrder: {
-            ...data.purchaseOrder,
-            status: 'uncertain',
-            requiresApproval: false,
-            canVerify: true,
-          },
-        });
-        assert.ok(button(uncertain, 'Verificar OCM en STAG'));
-        assert.ok(!button(uncertain, 'Verificar OCM en STAG').includes('disabled=""'));
-        assert.ok(!button(uncertain, 'Generar OCM en STAG'));
-      },
-    );
+    await t.test('las remisiones se suben y se validan según los permisos del backend', () => {
+      const remission = {
+        id: 'r1',
+        remission_number: 'R-1045',
+        hectares: 1,
+        review_status: 'Pendiente',
+        uploaded_by: 'José Manuel Valencia',
+        original_name: 'r.pdf',
+      };
+      const render = (permissions, attachments = [remission]) =>
+        renderToStaticMarkup(
+          React.createElement(RequestDetail, {
+            data: {
+              ...data,
+              status: 'Aprobada',
+              attachments,
+              permissions,
+              purchaseOrder: { ...data.purchaseOrder, stage: 'review' },
+            },
+            onClose() {},
+            onUploadRemission() {},
+            onReviewRemission() {},
+          }),
+        );
+      const uploader = render({ canUploadRemission: true }, []);
+      assert.match(uploader, /Sin remisión validada no se crea la OCM/);
+      assert.ok(button(uploader, 'Subir remisión'));
+      assert.ok(!button(uploader, 'Validar'));
+      const reviewer = render({ canReviewRemission: true });
+      assert.match(reviewer, /R-1045/);
+      assert.ok(button(reviewer, 'Validar'));
+      assert.ok(button(reviewer, 'Rechazar'));
+      assert.ok(!button(reviewer, 'Subir remisión'));
+      const validated = render({ canReviewRemission: true }, [
+        { ...remission, review_status: 'Validada' },
+      ]);
+      assert.ok(!button(validated, 'Validar'), 'una remisión ya revisada no se vuelve a decidir');
+    });
+
+    await t.test('la OCM creada conserva su enlace a STAG', () => {
+      const existing = renderDetail({
+        purchaseOrder: {
+          ...data.purchaseOrder,
+          stage: 'created',
+          status: 'created',
+          url: 'https://gab-stag-123.dev.odoo.com/web#id=123',
+          reference: 'OCM-PRUEBA',
+        },
+      });
+      assert.match(existing, /Ver OCM en STAG/);
+      assert.match(existing, /OCM-PRUEBA creada en STAG/);
+    });
 
     await t.test('los controles privilegiados dependen de los permisos del backend', async () => {
       const approval = renderDetail({ permissions: { canApprove: true, canCancel: true } });
@@ -202,7 +245,7 @@ test('render React del detalle y las altas restringidas', async (t) => {
   }
 });
 
-test('la dirección decide la vista: /validar para quien valida, lo demás para captura', async () => {
+test('la dirección decide la vista: /validar para el gestor, lo demás para captura', async () => {
   const { viewFromPath } = await import('../src/modules/application-requests/presentation/view.js');
   assert.equal(viewFromPath('/validar'), 'review');
   assert.equal(viewFromPath('/validar/'), 'review');

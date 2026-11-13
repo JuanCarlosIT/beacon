@@ -1,53 +1,57 @@
-// Qué mostrar en el panel de OCM del detalle, según lo que responde el backend.
+// La OCM la arma el gestor con remisiones validadas. Aquí: qué decirle a quien ve una solicitud
+// y cómo se agrupan las remisiones que pueden ir juntas en una OCM.
 
 const label = (purchase) => purchase.reference || 'OCM';
 
-// La primera regla que aplica decide el mensaje; el orden es la prioridad.
-const MESSAGE_RULES = [
-  [
-    (purchase) => purchase.status === 'created' && purchase.needsReview,
-    (purchase) =>
-      `${label(purchase)} vinculada. Revisa sus datos directamente en STAG; no generes otra orden.`,
-  ],
-  [
-    (purchase) => purchase.status === 'created',
-    (purchase) => `${label(purchase)} creada en STAG. Producción no fue modificada.`,
-  ],
-  [
-    (purchase) => purchase.canVerify,
-    () => 'La generación está pendiente de verificar. Se buscará la OCM existente, sin crear otra.',
-  ],
-  [
-    (purchase) => purchase.canCreate,
-    () => 'Se creará un borrador de prueba en STAG, sin confirmar compras ni generar pagos.',
-  ],
-  [(purchase) => !purchase.enabled, () => 'La creación de OCM en STAG no está habilitada.'],
-  [
-    (purchase) => purchase.roleAllowed === false,
-    () => 'Tu usuario no tiene permiso para generar la OCM.',
-  ],
-  [
-    (purchase) => purchase.requiresApproval,
-    () =>
-      'Pendiente de aprobación por un responsable autorizado. Después se habilitará el botón; aprobar no creará la OCM automáticamente.',
-  ],
-  [
-    (purchase, status) => status !== 'Aprobada',
-    () => 'Solo una solicitud en estado Aprobada puede generar una nueva OCM.',
-  ],
-];
-const FALLBACK_MESSAGE =
-  'Esta captura no está habilitada para generar OCM. Se requieren proveedor, periodo y tarifa completos.';
+// Etapa que reporta el backend → mensaje del panel del detalle.
+const STAGE_MESSAGES = {
+  approval: () => 'Primero debe autorizarse la solicitud. Después se sube la remisión.',
+  remission: () =>
+    'Falta la remisión. Sin remisión validada no se crea la OCM; la sube quien registra remisiones.',
+  review: () => 'Hay remisiones esperando que el aprobador las revise y valide.',
+  ready: () => 'Hay remisiones validadas. El gestor ya puede escogerlas para crear la OCM en STAG.',
+  creating: () => 'La OCM se está creando en STAG.',
+  uncertain: () =>
+    'La OCM quedó pendiente de verificar. El gestor debe verificarla; no se generará otra.',
+  created: (purchase) =>
+    purchase.needsReview
+      ? `${label(purchase)} vinculada. Revisa sus datos directamente en STAG.`
+      : `${label(purchase)} creada en STAG. Producción no fue modificada.`,
+};
 
-export function purchaseOrderMessage(purchase, requestStatus) {
-  const rule = MESSAGE_RULES.find(([applies]) => applies(purchase, requestStatus));
-  return rule ? rule[1](purchase) : FALLBACK_MESSAGE;
+export const purchaseOrderMessage = (purchase) =>
+  (STAGE_MESSAGES[purchase.stage] ?? STAGE_MESSAGES.remission)(purchase);
+
+// Una OCM junta remisiones del mismo proveedor y periodo: así se agrupan para escoger.
+const groupKey = (remission) => `${remission.supplierId}|${remission.periodCode}`;
+
+export function groupRemissions(remissions) {
+  const groups = new Map();
+  for (const remission of remissions) {
+    const key = groupKey(remission);
+    const group = groups.get(key) ?? {
+      key,
+      supplierName: remission.supplierName,
+      periodName: remission.periodName,
+      remissions: [],
+    };
+    group.remissions.push(remission);
+    groups.set(key, group);
+  }
+  return [...groups.values()];
 }
 
-// 'link' si ya hay OCM, 'button' si se puede (o se podrá) generar/verificar, null si nada.
-export function purchaseOrderAction(purchase) {
-  if (purchase.url) return 'link';
-  return purchase.canCreate || purchase.canVerify || purchase.requiresApproval ? 'button' : null;
+// Marcar una remisión; si es de otro proveedor/periodo, la selección empieza de nuevo con ella.
+export function toggleRemission(selected, remission, remissions) {
+  if (selected.includes(remission.id)) return selected.filter((id) => id !== remission.id);
+  const sameGroup = selected.filter((id) => {
+    const other = remissions.find((item) => item.id === id);
+    return other && groupKey(other) === groupKey(remission);
+  });
+  return [...sameGroup, remission.id];
 }
 
-export const purchaseOrderReady = (purchase) => Boolean(purchase.canCreate || purchase.canVerify);
+export const selectionTotal = (selected, remissions) =>
+  remissions
+    .filter((remission) => selected.includes(remission.id))
+    .reduce((sum, remission) => sum + remission.amount, 0);

@@ -12,6 +12,7 @@ const values = {
   supplierId: '6',
   applicationPeriodCode: 'Post-siembra',
   ratePerHectare: '400.00',
+  products: [{ id: 9, name: 'Producto', uom: 'L', dose: '1.5' }],
   treatment: 'Tratamiento de prueba',
   priority: 'Normal',
   notes: '',
@@ -60,4 +61,39 @@ test('permite superficie parcial y descripción opcional', () => {
     validateRequestStep(2, { ...values, treatment: ' ' }, { hectares: 20 }, '2026-10-31').treatment,
     undefined,
   );
+});
+
+test('la receta vale anotada, con imagen o con productos; cada producto lleva su dosis', () => {
+  const validate = (recipe) =>
+    validateRequestStep(2, { ...values, products: [], ...recipe }, { hectares: 20 }, '2026-10-31')
+      .products;
+  assert.match(validate({}), /anótalo, sube una imagen o agrega los productos/);
+  assert.match(validate({ recipeText: '   ' }), /anótalo/);
+  assert.equal(validate({ recipeText: '1 litro de adhesivo' }), undefined);
+  assert.equal(validate({ recipeFile: { id: 'x', name: 'receta.png' } }), undefined);
+  assert.match(validate({ products: [{ id: 9, dose: '' }] }), /dosis/);
+  assert.match(validate({ recipeText: 'nota', products: [{ id: 9, dose: '0' }] }), /dosis/);
+  assert.equal(validate({ products: [{ id: 9, dose: '0.25' }] }), undefined);
+  assert.match(validate({ recipeText: 'x'.repeat(4001) }), /4,000/);
+});
+
+test('la dosis de un producto es opcional solo si la receta anotada o la imagen la traen', () => {
+  const validate = (recipe) =>
+    validateRequestStep(2, { ...values, ...recipe }, { hectares: 20 }, '2026-10-31').products;
+  const noDose = [{ id: 9, dose: '' }];
+  assert.match(validate({ products: noDose }), /Pon la dosis/);
+  assert.equal(validate({ products: noDose, recipeText: '2 L/ha' }), undefined);
+  assert.equal(validate({ products: noDose, recipeFile: { id: 'x', name: 'r.png' } }), undefined);
+  assert.match(validate({ products: [{ id: 9, dose: '-1' }], recipeText: '2 L/ha' }), /dosis/);
+});
+
+test('un tipo detectado sin producto hay que resolverlo antes de guardar', () => {
+  const products = [{ id: 'tipo-5', pending: true, typeId: 5, type: 'Adherente', dose: '1' }];
+  const error = validateRequestStep(
+    2,
+    { ...values, products, recipeText: '1 litro de adherente' },
+    { hectares: 20 },
+    '2026-10-31',
+  ).products;
+  assert.match(error, /Escoge el producto de «Adherente»/);
 });

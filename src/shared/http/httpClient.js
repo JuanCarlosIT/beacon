@@ -3,9 +3,12 @@ const downloadFailedMessage = 'No se pudo descargar el archivo. Intenta de nuevo
 const SPREADSHEET = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 // Le dice al backend qué vista está en uso (demo local: elige el usuario de prueba).
-const viewHeader = () => ({
-  'X-GAB-Vista': /^\/validar\/?$/.test(globalThis.location?.pathname ?? '') ? 'validar' : 'captura',
-});
+// /validar es la vista del gestor (remisiones y OCM); lo demás es la de quien captura.
+const VISTAS = ['validar'];
+const viewHeader = () => {
+  const page = (globalThis.location?.pathname ?? '').replace(/^\/+|\/+$/g, '');
+  return { 'X-GAB-Vista': VISTAS.includes(page) ? page : 'captura' };
+};
 
 // Mensaje para el usuario cuando la respuesta no sirve.
 // 503 trae un mensaje del backend pensado para el usuario; otros 5xx se ocultan.
@@ -32,6 +35,25 @@ export async function httpRequest(path, options = {}) {
   const data = await response.json().catch(() => null);
   if (!response.ok || !data) throw new Error(errorMessage(response.status, data));
   return data;
+}
+
+// Envío con archivo (multipart): el navegador pone el Content-Type con su separador.
+export async function httpUpload(path, formData) {
+  const response = await fetchOr(unavailableMessage, path, {
+    method: 'POST',
+    body: formData,
+    headers: viewHeader(),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data) throw new Error(errorMessage(response.status, data));
+  return data;
+}
+
+// Archivo guardado en el servidor (p. ej. una remisión), con el perfil de la vista en uso.
+export async function httpFile(path, fileName) {
+  const response = await fetchOr(downloadFailedMessage, path, { headers: viewHeader() });
+  if (!response.ok) throw new Error(downloadFailedMessage);
+  return { blob: await response.blob(), fileName };
 }
 
 export async function httpDownload(path, fileName) {

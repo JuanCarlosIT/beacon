@@ -62,6 +62,24 @@ const STEP_RULES = {
         return 'Indica una tarifa mayor que cero y no mayor a 100,000,000 MXN.';
       if (!hasAtMostTwoDecimals(value)) return 'La tarifa admite hasta dos decimales.';
     },
+    products({ products = [], recipeText = '', recipeFile = null }) {
+      if (!products.length && !recipeText.trim() && !recipeFile)
+        return 'Indica qué se va a aplicar: anótalo, sube una imagen o agrega los productos.';
+      if (recipeText.length > 4000)
+        return 'La receta anotada no debe superar los 4,000 caracteres.';
+      const pending = products.find((product) => product.pending);
+      if (pending)
+        return `Escoge el producto de «${pending.type}» o quita ese renglón de la receta.`;
+      // La dosis puede faltar si ya viene en la receta anotada o en su imagen; si se escribe,
+      // debe ser válida.
+      const doseInRecipe = Boolean(recipeText.trim() || recipeFile);
+      const badDose = (product) =>
+        product.dose === '' || product.dose == null
+          ? !doseInRecipe
+          : !isPositive(Number(product.dose));
+      if (products.some(badDose))
+        return 'Pon la dosis por hectárea de cada producto, o anota la receta o sube su imagen con las dosis.';
+    },
     treatment: ({ treatment }) =>
       (treatment || '').trim().length > 500
         ? 'El motivo no debe superar los 500 caracteres.'

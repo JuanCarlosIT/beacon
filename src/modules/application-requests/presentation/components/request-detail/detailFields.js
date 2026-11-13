@@ -25,18 +25,40 @@ export const noticeLabel = (notice) =>
     ? `${NOTICE_TEXT[notice.status](notice.detail)} · ${noticeMoment(notice.at)}`
     : 'Todavía no se ha enviado';
 
-export const detailSections = (data) => [
+// Tarifa capturada y, si pidió autorización, en qué quedó.
+const RATE_NOTE = {
+  Pendiente: (data) =>
+    `Se pidió ${formatMoney(data.requested_rate ?? data.rate_per_hectare)} MXN / ha: espera autorización por ser mayor a la del ciclo (${
+      data.authorized_rate == null ? 'sin tarifa' : `${formatMoney(data.authorized_rate)} MXN / ha`
+    })`,
+  Autorizada: (data) => `Alza autorizada por ${data.rate_decided_by}`,
+  Rechazada: (data) =>
+    `Se pidió ${formatMoney(data.requested_rate)} MXN / ha; ${data.rate_decided_by} la rechazó`,
+};
+export const rateLabel = (data) => {
+  const rate = moneyOr(data.rate_per_hectare, 'No registrada', 'MXN / ha');
+  const note = RATE_NOTE[data.rate_authorization]?.(data);
+  return note ? `${rate} · ${note}` : rate;
+};
+
+// Hay receta si se anotó, se subió una imagen o se agregaron productos.
+export const hasRecipe = (data) =>
+  Boolean(data.recipe_text || data.recipe_file || data.products?.length);
+
+// showNotice: la vista de quien sube remisiones no muestra el estado del aviso de WhatsApp.
+export const detailSections = (data, { showNotice = true } = {}) => [
   {
     icon: ClipboardList,
     title: 'Aplicación',
     fields: [
       ['Fecha requerida', formatDate(data.requested_date)],
       ['Superficie', `${formatNumber(data.hectares)} ha`],
-      ['Prioridad', data.priority],
+      ...(data.priority === 'Alta' ? [['Prioridad', data.priority]] : []),
       ['Solicitante', data.requested_by],
-      ['Tratamiento', data.treatment || 'No especificado', true],
-      ['Observaciones', data.notes || 'Sin observaciones', true],
-      ['Aviso por WhatsApp', noticeLabel(data.notice), true],
+      // Datos de capturas anteriores: se muestran solo si la solicitud los trae.
+      ...(data.treatment ? [['Tratamiento', data.treatment, true]] : []),
+      ...(data.notes ? [['Observaciones', data.notes, true]] : []),
+      ...(showNotice ? [['Aviso por WhatsApp', noticeLabel(data.notice), true]] : []),
     ],
   },
   {
@@ -56,7 +78,7 @@ export const detailSections = (data) => [
       ['Proveedor solicitado', data.supplier_name || MISSING, true],
       ['RFC / referencia', data.supplier_vat || data.supplier_reference || 'No disponible'],
       ['Periodo de aplicación', data.application_period_name || MISSING],
-      ['Tarifa por hectárea', moneyOr(data.rate_per_hectare, 'No registrada', 'MXN / ha')],
+      ['Tarifa por hectárea', rateLabel(data), true],
       ['Subtotal estimado (sin impuestos)', moneyOr(data.estimated_subtotal, 'No registrado')],
     ],
   },

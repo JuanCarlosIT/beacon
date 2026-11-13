@@ -1,37 +1,13 @@
-import { ExternalLink, RefreshCw, ShoppingCart } from 'lucide-react';
-import BusyIcon from '../../../../../shared/ui/BusyIcon.jsx';
-import { btnPrimary, btnSecondary } from '../../../../../shared/ui/classes.js';
-import {
-  purchaseOrderAction,
-  purchaseOrderMessage,
-  purchaseOrderReady,
-} from '../../../domain/purchaseOrder.js';
+import { ExternalLink, ShoppingCart } from 'lucide-react';
+import { btnSecondary } from '../../../../../shared/ui/classes.js';
+import { purchaseOrderMessage } from '../../../domain/purchaseOrder.js';
 
-function PurchaseOrderButton({ purchase, creating, disabled, onClick }) {
-  const verify = purchase.canVerify;
-  const label = verify ? 'Verificar OCM en STAG' : 'Generar OCM en STAG';
-  return (
-    <button type="button" className={btnPrimary} disabled={disabled} onClick={onClick}>
-      <BusyIcon busy={creating} icon={verify ? RefreshCw : ShoppingCart} />
-      {creating ? 'Procesando…' : label}
-    </button>
-  );
-}
-
-// Panel de la orden de compra en STAG: estado explicado y la acción que corresponda.
-export default function PurchaseOrderPanel({
-  purchase,
-  requestStatus,
-  creating,
-  changingStatus,
-  onCreate,
-}) {
-  const action = purchaseOrderAction(purchase);
+// Estado de la OCM de la solicitud. La OCM la crea el gestor en su tablero, con las remisiones.
+export default function PurchaseOrderPanel({ purchase }) {
   return (
     <section
       className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-[7px] border border-gab-line bg-gab-accent-soft p-4"
       aria-labelledby="staging-purchase-title"
-      aria-busy={creating}
     >
       <div className="min-w-0 flex-[1_1_240px]">
         <h3
@@ -44,21 +20,13 @@ export default function PurchaseOrderPanel({
           </span>
         </h3>
         <p className="mt-2 text-xs leading-[1.7] break-words text-gab-muted">
-          {purchaseOrderMessage(purchase, requestStatus)}
+          {purchaseOrderMessage(purchase)}
         </p>
       </div>
-      {action === 'link' && (
+      {purchase.url && (
         <a className={btnSecondary} href={purchase.url} target="_blank" rel="noopener noreferrer">
           <ExternalLink size={16} /> Ver OCM en STAG
         </a>
-      )}
-      {action === 'button' && onCreate && (
-        <PurchaseOrderButton
-          purchase={purchase}
-          creating={creating}
-          disabled={creating || changingStatus || !purchaseOrderReady(purchase)}
-          onClick={onCreate}
-        />
       )}
     </section>
   );

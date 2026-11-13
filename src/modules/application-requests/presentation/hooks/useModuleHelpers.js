@@ -30,16 +30,24 @@ export function useCurrentUser(useCases) {
   return user;
 }
 
-// El aviso de WhatsApp trae ?solicitud=<id>: lo quita de la dirección y lo entrega una vez.
+// La dirección recuerda en qué pestaña se está y qué solicitud está abierta
+// (?pestana=historial&solicitud=<id>): al recargar la página se regresa al mismo lugar, y el
+// link del aviso de WhatsApp (?solicitud=<id>) abre directo esa solicitud.
+export const readUrlParam = (name) => new URL(window.location.href).searchParams.get(name);
+
+export function writeUrlParam(name, value) {
+  const url = new URL(window.location.href);
+  if (value == null || value === '') url.searchParams.delete(name);
+  else url.searchParams.set(name, value);
+  window.history.replaceState(null, '', url);
+}
+
+// Corre una vez al montar con la solicitud que venga en la dirección.
 export function useLinkedRequest(onLinked) {
   useEffect(() => {
-    const url = new URL(window.location.href);
-    const linked = url.searchParams.get('solicitud');
-    if (!linked) return;
-    url.searchParams.delete('solicitud');
-    window.history.replaceState(null, '', url);
-    onLinked(linked);
-    // Solo al montar: el link se usa una vez.
+    const linked = readUrlParam('solicitud');
+    if (linked) onLinked(linked);
+    // Solo al montar.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 }

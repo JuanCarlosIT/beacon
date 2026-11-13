@@ -4,12 +4,16 @@ import StatusBadge from './StatusBadge.jsx';
 import DetailSection from './request-detail/DetailSection.jsx';
 import PurchaseOrderPanel from './request-detail/PurchaseOrderPanel.jsx';
 import DecisionFooter from './request-detail/DecisionFooter.jsx';
-import { detailSections, executionSection } from './request-detail/detailFields.js';
+import RemissionsPanel from './request-detail/RemissionsPanel.jsx';
+import EventLog from './request-detail/EventLog.jsx';
+import RateCorrection from './request-detail/RateCorrection.jsx';
+import RecipeCard from './request-detail/RecipeCard.jsx';
+import { detailSections, executionSection, hasRecipe } from './request-detail/detailFields.js';
 import { useDialogKeyboard } from './request-detail/useDialogKeyboard.js';
 import { cx, iconButton, modal, modalBackdrop, tagHigh } from '../../../../shared/ui/classes.js';
 
 // Acciones disponibles: solo las que el backend permite y la vista sabe ejecutar.
-function decisionActions(data, { onRequestApproval, onChangeStatus }) {
+function decisionActions(data, { onRequestApproval, onChangeStatus, onDecideRate }) {
   const permissions = data.permissions || {};
   const allowed = (permission, handler, run) => (permission && handler ? run : null);
   return {
@@ -19,6 +23,12 @@ function decisionActions(data, { onRequestApproval, onChangeStatus }) {
     cancel: allowed(permissions.canCancel, onChangeStatus, () => onChangeStatus(data, 'Cancelada')),
     approve: allowed(permissions.canApprove, onChangeStatus, () =>
       onChangeStatus(data, 'Aprobada'),
+    ),
+    authorizeRate: allowed(permissions.canDecideRate, onDecideRate, () =>
+      onDecideRate(data, 'Autorizada'),
+    ),
+    rejectRate: allowed(permissions.canDecideRate, onDecideRate, () =>
+      onDecideRate(data, 'Rechazada'),
     ),
   };
 }
@@ -53,8 +63,16 @@ function DetailHeader({ data, closeRef, onClose }) {
 export default function RequestDetail({
   data,
   onClose,
-  onCreatePurchase,
-  creatingPurchase = false,
+  onDecideRate,
+  onCorrectRate,
+  onUploadRemission,
+  onReviewRemission,
+  onOpenRemission,
+  onOpenRecipeImage,
+  onLoadRecipeImage,
+  // Vista de quien sube remisiones: sin estado del aviso de WhatsApp ni historial.
+  remissionsOnly = false,
+  remissionBusy = false,
   onChangeStatus,
   changingStatus = false,
   onRequestApproval,
@@ -63,9 +81,11 @@ export default function RequestDetail({
   const closeRef = useRef(null);
   useDialogKeyboard(closeRef, onClose);
 
-  const actions = decisionActions(data, { onRequestApproval, onChangeStatus });
+  const actions = decisionActions(data, { onRequestApproval, onChangeStatus, onDecideRate });
   const hasDecision = Object.values(actions).some(Boolean);
-  const busy = changingStatus || creatingPurchase || requestingApproval;
+  const busy = changingStatus || remissionBusy || requestingApproval;
+  const [application, ...otherSections] = detailSections(data, { showNotice: !remissionsOnly });
+  const showRemissions = data.status !== 'Solicitada' || data.attachments?.length > 0;
   return (
     <div className={modalBackdrop}>
       <section
@@ -80,19 +100,40 @@ export default function RequestDetail({
         <DetailHeader data={data} closeRef={closeRef} onClose={onClose} />
 
         <div className="flex-1 overflow-y-auto px-5 pt-1 pb-5 max-sm:px-4 max-sm:pt-0 max-sm:pb-4">
-          {detailSections(data).map((section) => (
-            <DetailSection key={section.title} {...section} />
-          ))}
-          {data.purchaseOrder && (
-            <PurchaseOrderPanel
-              purchase={data.purchaseOrder}
-              requestStatus={data.status}
-              creating={creatingPurchase}
-              changingStatus={changingStatus}
-              onCreate={onCreatePurchase && (() => onCreatePurchase(data))}
+          <DetailSection {...application} />
+          {hasRecipe(data) && (
+            <RecipeCard
+              data={data}
+              onLoadImage={onLoadRecipeImage}
+              onDownloadImage={onOpenRecipeImage}
             />
           )}
+          {otherSections.map((section) => (
+            <DetailSection key={section.title} {...section} />
+          ))}
+          {data.permissions?.canEditRate && onCorrectRate && (
+            <RateCorrection
+              data={data}
+              busy={busy}
+              onCorrect={(rate) => onCorrectRate(data, rate)}
+            />
+          )}
+          {showRemissions && (
+            <RemissionsPanel
+              remissions={data.attachments ?? []}
+              permissions={data.permissions || {}}
+              busy={busy}
+              onUpload={onUploadRemission && ((remission) => onUploadRemission(data, remission))}
+              onReview={
+                onReviewRemission &&
+                ((remission, status) => onReviewRemission(data, remission, status))
+              }
+              onOpenFile={onOpenRemission}
+            />
+          )}
+          {data.purchaseOrder && <PurchaseOrderPanel purchase={data.purchaseOrder} />}
           {data.execution && <DetailSection {...executionSection(data.execution)} />}
+          {!remissionsOnly && data.events?.length > 0 && <EventLog events={data.events} />}
         </div>
 
         {hasDecision && (

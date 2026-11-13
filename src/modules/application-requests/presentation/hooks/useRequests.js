@@ -62,18 +62,21 @@ export function useRequests(useCases) {
     await reloadCatalog();
     return supplier;
   }
-  async function createPurchaseOrder(id) {
+  // Acción sobre una solicitud abierta: al terminar (bien o mal) se vuelve a leer del servidor.
+  async function onRequest(id, action) {
     try {
-      const result = await useCases.createPurchaseOrder(id);
-      updateDetail(id, (current) => ({ ...current, purchaseOrder: result.purchaseOrder }));
-      await reloadHistory();
-      return result;
-    } catch (error) {
-      // Si falla la conexión, el backend conserva la reserva y evita duplicados.
+      return await action();
+    } finally {
       await refreshDetail(id).catch(() => {});
-      throw error;
+      await reloadHistory();
     }
   }
+  const decideRate = (id, decision) => onRequest(id, () => useCases.decideRate(id, decision));
+  const correctRate = (id, rate) => onRequest(id, () => useCases.correctRate(id, rate));
+  const uploadRemission = (id, remission) =>
+    onRequest(id, () => useCases.uploadRemission(id, remission));
+  const reviewRemission = (id, remissionId, status) =>
+    onRequest(id, () => useCases.reviewRemission(remissionId, status));
   // Estable entre renders: el detalle no vuelve a mover el foco en cada actualización.
   const closeDetail = useCallback(() => setDetail(null), []);
 
@@ -92,7 +95,10 @@ export function useRequests(useCases) {
     reloadCatalog,
     register,
     openDetail,
-    createPurchaseOrder,
+    decideRate,
+    correctRate,
+    uploadRemission,
+    reviewRemission,
     changeStatus,
     registerSupplier,
     closeDetail,

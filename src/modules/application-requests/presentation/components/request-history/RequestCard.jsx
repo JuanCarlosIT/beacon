@@ -17,10 +17,28 @@ import StatusBadge from '../StatusBadge.jsx';
 
 const STATUS_TEXT = {
   Solicitada: 'En espera de autorización',
-  Aprobada: 'Pendiente de aplicación',
   Realizada: 'Aplicación registrada',
   Cancelada: 'Solicitud cancelada',
 };
+
+// Qué sigue para una solicitud autorizada, rumbo a su OCM. La primera regla que aplica gana.
+const APPROVED_STEPS = [
+  [
+    (row) => row.purchase_order_status === 'created',
+    (row) => `OCM ${row.purchase_order_name || 'creada'}`,
+  ],
+  [(row) => row.purchase_order_status, () => 'OCM en proceso'],
+  [(row) => row.remissions_pending > 0, () => 'Remisión por validar'],
+  [(row) => row.remissions_validated > 0, () => 'Lista para OCM'],
+];
+
+export function nextStep(row) {
+  if (row.rate_authorization === 'Pendiente' && ['Solicitada', 'Aprobada'].includes(row.status))
+    return 'Tarifa por autorizar';
+  if (row.status !== 'Aprobada') return STATUS_TEXT[row.status];
+  const step = APPROVED_STEPS.find(([applies]) => applies(row));
+  return step ? step[1](row) : 'Falta la remisión';
+}
 
 function CardFigures({ row }) {
   return (
@@ -90,7 +108,7 @@ export default function RequestCard({ row, onOpen }) {
       <CardTags row={row} />
       {row.treatment && <p className="mt-2 text-xs text-gab-muted">{row.treatment}</p>}
       <footer className="mt-auto flex items-center justify-between gap-2.5 pt-3.5">
-        <span className="text-[11px] text-gab-muted">{STATUS_TEXT[row.status]}</span>
+        <span className="text-[11px] text-gab-muted">{nextStep(row)}</span>
         <button
           type="button"
           className={cx(pending ? btnPrimary : btnSecondary, 'min-h-[38px] px-3.5 py-2')}

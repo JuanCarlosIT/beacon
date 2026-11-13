@@ -16,6 +16,13 @@ export function createRequestPayload(input) {
     odooSupplierId: Number(input.odooSupplierId),
     applicationPeriodCode: input.applicationPeriodCode,
     ratePerHectare: Number(input.ratePerHectare),
+    recipeText: (input.recipeText || '').trim(),
+    ...(input.recipeFileId ? { recipeFileId: input.recipeFileId } : {}),
+    products: (input.products || []).map((product) => ({
+      odooProductId: Number(product.odooProductId),
+      // Sin dosis = ya viene en la receta anotada o en su imagen.
+      dosePerHectare: product.dosePerHectare ? Number(product.dosePerHectare) : null,
+    })),
     treatment: (input.treatment || '').trim(),
     priority: input.priority || 'Normal',
     notes: (input.notes || '').trim(),
@@ -25,7 +32,7 @@ export function createRequestPayload(input) {
 export const requestStatuses = [
   { value: 'Todas', label: 'Todas' },
   { value: 'Solicitada', label: 'Por autorizar' },
-  { value: 'Aprobada', label: 'Aprobadas' },
+  { value: 'Aprobada', label: 'Autorizadas' },
   { value: 'Realizada', label: 'Realizadas' },
   { value: 'Cancelada', label: 'Canceladas' },
 ];

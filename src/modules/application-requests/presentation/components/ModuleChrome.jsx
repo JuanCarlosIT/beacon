@@ -1,20 +1,22 @@
 import { AlertCircle, Plus, RefreshCw } from 'lucide-react';
-import { btnSecondary, cx, panel } from '../../../../shared/ui/classes.js';
+import { btnSecondary, count, cx, panel } from '../../../../shared/ui/classes.js';
 
 // Título y subtítulo de cada vista.
 const VIEW_COPY = {
-  review: {
-    title: 'Solicitudes por validar',
-    subtitle: 'Revisa cada solicitud y apruébala o cancélala.',
-  },
   capture: {
     title: 'Solicitud de aplicación aérea',
-    subtitle: 'Llena la solicitud; el aprobador recibe el aviso por WhatsApp.',
+    subtitle:
+      'Llena la solicitud: queda autorizada al guardar. En Historial ves las que ya hiciste y validas sus remisiones.',
+  },
+  review: {
+    title: 'Remisiones y OCM',
+    subtitle:
+      'Sube la remisión de cada solicitud autorizada. Cuando quede validada, escógela para crear la OCM en STAG.',
   },
 };
 
-export function ModuleHeader({ reviewing, user }) {
-  const copy = reviewing ? VIEW_COPY.review : VIEW_COPY.capture;
+export function ModuleHeader({ view, user }) {
+  const copy = VIEW_COPY[view] ?? VIEW_COPY.capture;
   return (
     <div className="mb-[26px] flex items-center justify-between gap-5 max-sm:mb-5">
       <div>
@@ -58,7 +60,7 @@ export function ServiceAlert({ error, loading, onRetry }) {
 }
 
 // Panel "Nueva solicitud" que envuelve el formulario de captura.
-export function CapturePanel({ children }) {
+export function CapturePanel({ children, note = '* Campos obligatorios' }) {
   return (
     <section className={cx(panel, 'mb-7')} aria-labelledby="request-form-title">
       <div className="flex items-center justify-between gap-3 border-b border-gab-line px-6 py-5 max-sm:p-[18px]">
@@ -69,9 +71,70 @@ export function CapturePanel({ children }) {
           <Plus size={18} />
           Nueva solicitud
         </h2>
-        <span className="text-xs text-gab-muted max-sm:text-[10px]">* Campos obligatorios</span>
+        <span className="text-xs text-gab-muted max-sm:text-[10px]">{note}</span>
       </div>
       {children}
     </section>
+  );
+}
+
+const tabId = (index) => `module-tab-${index}`;
+const panelId = (index) => `module-panel-${index}`;
+
+const tabClass = (selected) =>
+  cx(
+    'inline-flex min-h-11 cursor-pointer items-center gap-2 border-b-2 px-4 text-[13px] font-semibold transition-colors',
+    'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gab-accent',
+    selected
+      ? 'border-gab-accent text-gab-accent'
+      : 'border-transparent text-gab-muted hover:text-gab-ink',
+  );
+
+// Pestañas de la vista. Con flechas izquierda/derecha se pasa de una a otra.
+export function Tabs({ labels, counts = [], selected, onSelect }) {
+  function onKeyDown(event) {
+    const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
+    if (!step) return;
+    const next = (selected + step + labels.length) % labels.length;
+    onSelect(next);
+    document.getElementById(tabId(next))?.focus();
+  }
+  return (
+    <div
+      role="tablist"
+      aria-label="Secciones"
+      className="mb-5 flex gap-1 border-b border-gab-line"
+      onKeyDown={onKeyDown}
+    >
+      {labels.map((label, index) => (
+        <button
+          key={label}
+          id={tabId(index)}
+          type="button"
+          role="tab"
+          aria-selected={selected === index}
+          aria-controls={panelId(index)}
+          tabIndex={selected === index ? 0 : -1}
+          className={tabClass(selected === index)}
+          onClick={() => onSelect(index)}
+        >
+          {label}
+          {counts[index] != null && <span className={count}>{counts[index]}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function TabPanel({ index, selected, children }) {
+  return (
+    <div
+      id={panelId(index)}
+      role="tabpanel"
+      aria-labelledby={tabId(index)}
+      hidden={selected !== index}
+    >
+      {children}
+    </div>
   );
 }
