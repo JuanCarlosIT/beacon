@@ -23,9 +23,6 @@ export function createRequestPayload(input) {
       // Sin dosis = ya viene en la receta anotada o en su imagen.
       dosePerHectare: product.dosePerHectare ? Number(product.dosePerHectare) : null,
     })),
-    treatment: (input.treatment || '').trim(),
-    priority: input.priority || 'Normal',
-    notes: (input.notes || '').trim(),
   };
 }
 
@@ -33,6 +30,5 @@ export const requestStatuses = [
   { value: 'Todas', label: 'Todas' },
   { value: 'Solicitada', label: 'Por autorizar' },
   { value: 'Aprobada', label: 'Autorizadas' },
-  { value: 'Realizada', label: 'Realizadas' },
   { value: 'Cancelada', label: 'Canceladas' },
 ];

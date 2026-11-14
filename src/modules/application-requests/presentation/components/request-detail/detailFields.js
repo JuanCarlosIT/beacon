@@ -1,4 +1,4 @@
-import { ClipboardList, MapPin, Building2, Plane } from 'lucide-react';
+import { ClipboardList, MapPin, Building2 } from 'lucide-react';
 import {
   formatDate,
   formatMoney,
@@ -53,11 +53,7 @@ export const detailSections = (data, { showNotice = true } = {}) => [
     fields: [
       ['Fecha requerida', formatDate(data.requested_date)],
       ['Superficie', `${formatNumber(data.hectares)} ha`],
-      ...(data.priority === 'Alta' ? [['Prioridad', data.priority]] : []),
       ['Solicitante', data.requested_by],
-      // Datos de capturas anteriores: se muestran solo si la solicitud los trae.
-      ...(data.treatment ? [['Tratamiento', data.treatment, true]] : []),
-      ...(data.notes ? [['Observaciones', data.notes, true]] : []),
       ...(showNotice ? [['Aviso por WhatsApp', noticeLabel(data.notice), true]] : []),
     ],
   },
@@ -83,14 +79,3 @@ export const detailSections = (data, { showNotice = true } = {}) => [
     ],
   },
 ];
-
-export const executionSection = (execution) => ({
-  icon: Plane,
-  title: 'Aplicación realizada',
-  fields: [
-    ['Fecha', formatDate(execution.execution_date)],
-    ['Hectáreas aplicadas', `${formatNumber(execution.hectares)} ha`],
-    ['Proveedor', execution.provider],
-    ['Piloto', execution.pilot],
-  ],
-});

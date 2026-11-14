@@ -11,13 +11,11 @@ import {
   numeric,
   statusLine,
   tag,
-  tagHigh,
 } from '../../../../../shared/ui/classes.js';
 import StatusBadge from '../StatusBadge.jsx';
 
 const STATUS_TEXT = {
   Solicitada: 'En espera de autorización',
-  Realizada: 'Aplicación registrada',
   Cancelada: 'Solicitud cancelada',
 };
 
@@ -73,7 +71,6 @@ function CardTags({ row }) {
         <Sprout size={13} aria-hidden="true" />
         {row.crop}
       </span>
-      {row.priority === 'Alta' && <span className={tagHigh}>Prioridad alta</span>}
       {row.supplier_name && (
         <span className={tag} title={row.supplier_name}>
           {row.supplier_name}
@@ -106,7 +103,6 @@ export default function RequestCard({ row, onOpen }) {
       </p>
       <CardFigures row={row} />
       <CardTags row={row} />
-      {row.treatment && <p className="mt-2 text-xs text-gab-muted">{row.treatment}</p>}
       <footer className="mt-auto flex items-center justify-between gap-2.5 pt-3.5">
         <span className="text-[11px] text-gab-muted">{nextStep(row)}</span>
         <button

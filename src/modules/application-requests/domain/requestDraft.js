@@ -18,9 +18,6 @@ export const emptyDraft = () => ({
   recipeText: '',
   recipeFile: null,
   products: [],
-  treatment: '',
-  priority: 'Normal',
-  notes: '',
 });
 
 const EMPTY_CATALOG = {
@@ -141,9 +138,6 @@ export const toRequestPayload = (draft, record) => ({
     odooProductId: product.id,
     dosePerHectare: product.dose === '' ? null : Number(product.dose),
   })),
-  treatment: draft.treatment.trim(),
-  priority: draft.priority,
-  notes: draft.notes.trim(),
 });
 
 // Mismo payload = misma llave: reintentar un guardado que falló no duplica la solicitud.

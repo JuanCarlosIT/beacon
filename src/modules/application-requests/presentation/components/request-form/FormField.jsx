@@ -6,11 +6,9 @@ import {
   CalendarDays,
   CircleHelp,
   FileText,
-  Flag,
   Layers,
   MapPin,
   MapPinned,
-  MessageSquare,
   Ruler,
   Sprout,
 } from 'lucide-react';
@@ -28,9 +26,6 @@ const FIELD_ICONS = {
   supplierId: Building2,
   applicationPeriodCode: CalendarDays,
   ratePerHectare: Banknote,
-  treatment: FileText,
-  priority: Flag,
-  notes: MessageSquare,
 };
 
 const describedBy = (id, hint, error) =>

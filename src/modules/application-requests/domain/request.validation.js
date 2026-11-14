@@ -7,7 +7,6 @@ export function localToday() {
 }
 
 const MAX_RATE = 100000000;
-const PRIORITIES = ['Normal', 'Alta'];
 
 const isPositive = (value) => Number.isFinite(value) && value > 0;
 const hasAtMostTwoDecimals = (value) => Math.abs(value * 100 - Math.round(value * 100)) <= 0.000001;
@@ -80,16 +79,6 @@ const STEP_RULES = {
       if (products.some(badDose))
         return 'Pon la dosis por hectárea de cada producto, o anota la receta o sube su imagen con las dosis.';
     },
-    treatment: ({ treatment }) =>
-      (treatment || '').trim().length > 500
-        ? 'El motivo no debe superar los 500 caracteres.'
-        : undefined,
-    priority: ({ priority }) =>
-      PRIORITIES.includes(priority) ? undefined : 'Elige una prioridad de la lista.',
-    notes: ({ notes }) =>
-      (notes || '').length > 2000
-        ? 'Las observaciones no deben superar los 2,000 caracteres.'
-        : undefined,
   },
 };
 

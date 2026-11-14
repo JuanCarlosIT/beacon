@@ -25,7 +25,7 @@ test('el caso de uso elimina etiquetas enviadas por el navegador y mantiene apli
   });
   assert.equal(body.odooPlotId, 5);
   assert.equal(body.hectares, 12.5);
-  assert.equal(body.treatment, '');
+  assert.equal(body.treatment, undefined);
   assert.equal(body.ranch, undefined);
   assert.equal(body.crop, undefined);
   assert.equal(body.odooSupplierId, 6);

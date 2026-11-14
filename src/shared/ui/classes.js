@@ -59,19 +59,16 @@ export const modal = cx(
 
 export const tag =
   'inline-flex max-w-full items-center gap-1 rounded-full bg-gab-gris-bg px-2 py-0.5 text-[11px] font-semibold break-words text-gab-muted';
-export const tagHigh = cx(tag, 'bg-gab-bad-bg text-gab-bad');
 
 // Color por estado de la solicitud: etiqueta y raya de las tarjetas.
 export const statusBadge = {
   Solicitada: 'bg-gab-warn-bg text-gab-warn',
   Aprobada: 'bg-gab-accent-soft text-gab-accent',
-  Realizada: 'bg-gab-ok-bg text-gab-ok',
   Cancelada: 'bg-gab-bad-bg text-gab-bad',
 };
 export const statusLine = {
   Solicitada: 'border-l-gab-warn',
   Aprobada: 'border-l-gab-accent',
-  Realizada: 'border-l-gab-ok',
   Cancelada: 'border-l-gab-bad',
 };
 

@@ -8,9 +8,9 @@ import RemissionsPanel from './request-detail/RemissionsPanel.jsx';
 import EventLog from './request-detail/EventLog.jsx';
 import RateCorrection from './request-detail/RateCorrection.jsx';
 import RecipeCard from './request-detail/RecipeCard.jsx';
-import { detailSections, executionSection, hasRecipe } from './request-detail/detailFields.js';
+import { detailSections, hasRecipe } from './request-detail/detailFields.js';
 import { useDialogKeyboard } from './request-detail/useDialogKeyboard.js';
-import { cx, iconButton, modal, modalBackdrop, tagHigh } from '../../../../shared/ui/classes.js';
+import { cx, iconButton, modal, modalBackdrop } from '../../../../shared/ui/classes.js';
 
 // Acciones disponibles: solo las que el backend permite y la vista sabe ejecutar.
 function decisionActions(data, { onRequestApproval, onChangeStatus, onDecideRate }) {
@@ -45,7 +45,6 @@ function DetailHeader({ data, closeRef, onClose }) {
         </p>
         <div className="mt-2.5 flex flex-wrap gap-1.5">
           <StatusBadge status={data.status} />
-          {data.priority === 'Alta' && <span className={tagHigh}>Prioridad alta</span>}
         </div>
       </div>
       <button
@@ -132,7 +131,6 @@ export default function RequestDetail({
             />
           )}
           {data.purchaseOrder && <PurchaseOrderPanel purchase={data.purchaseOrder} />}
-          {data.execution && <DetailSection {...executionSection(data.execution)} />}
           {!remissionsOnly && data.events?.length > 0 && <EventLog events={data.events} />}
         </div>
 

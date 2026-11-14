@@ -13,9 +13,6 @@ const values = {
   applicationPeriodCode: 'Post-siembra',
   ratePerHectare: '400.00',
   products: [{ id: 9, name: 'Producto', uom: 'L', dose: '1.5' }],
-  treatment: 'Tratamiento de prueba',
-  priority: 'Normal',
-  notes: '',
 };
 test('el asistente indica cada selección faltante', () => {
   assert.deepEqual(Object.keys(validateRequestStep(1, {}, null)), [
@@ -55,12 +52,8 @@ test('el asistente impide una fecha pasada y superficies excesivas', () => {
   assert.ok(errors.date);
   assert.ok(errors.hectares);
 });
-test('permite superficie parcial y descripción opcional', () => {
+test('permite superficie parcial', () => {
   assert.deepEqual(validateRequestStep(2, values, { hectares: 20 }, '2026-10-31'), {});
-  assert.equal(
-    validateRequestStep(2, { ...values, treatment: ' ' }, { hectares: 20 }, '2026-10-31').treatment,
-    undefined,
-  );
 });
 
 test('la receta vale anotada, con imagen o con productos; cada producto lleva su dosis', () => {

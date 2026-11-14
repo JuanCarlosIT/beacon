@@ -188,7 +188,6 @@ test('render React del detalle y las altas restringidas', async (t) => {
           ranch: 'CABORCA',
           crop: 'PAPA',
           hectares: 30,
-          priority: 'Normal',
           status: 'Solicitada',
           requested_date: '2026-11-12',
           cycle_name: '26.27',
@@ -201,11 +200,9 @@ test('render React del detalle y las altas restringidas', async (t) => {
           ranch: 'LM',
           crop: 'PAPA',
           hectares: 18,
-          priority: 'Alta',
           status: 'Aprobada',
           requested_date: '2026-11-12',
           cycle_name: '26.27',
-          treatment: 'Aplicación de prueba',
         },
       ];
       const html = renderToStaticMarkup(
@@ -237,8 +234,6 @@ test('render React del detalle y las altas restringidas', async (t) => {
         assert.ok(!card.includes('$$'));
       }
       assert.match(cards[0], /En espera de autorización[\s\S]*Revisar/);
-      assert.ok(cards[1].includes('Prioridad alta'));
-      assert.ok(cards[1].includes('Aplicación de prueba'));
     });
   } finally {
     await server.close();
