@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AlertCircle, Camera, ImageUp, Trash2 } from 'lucide-react';
+import { AlertCircle, Camera, Check, ImageUp, Plus, X } from 'lucide-react';
 import { formatNumber } from '../../../../../shared/formatting/formatters.js';
-import { btnSecondary, cx, iconButton } from '../../../../../shared/ui/classes.js';
+import { btnSecondary, cx } from '../../../../../shared/ui/classes.js';
 import {
   MAX_PRODUCTS,
   detectProducts,
@@ -10,7 +10,7 @@ import {
   newDetections,
   productTotal,
 } from '../../../domain/requestDraft.js';
-import { fieldInput, unitInput, unitLabel } from './formStyles.js';
+import { fieldInput, numberInput } from './formStyles.js';
 
 // Catálogo de Odoo para la receta, ya separado por tipo. Se carga una vez al abrir el formulario.
 function useProductCatalog(onLoad) {
@@ -30,99 +30,179 @@ function useProductCatalog(onLoad) {
   return { ...state, reload: load };
 }
 
+// Total a llevar según la dosis y la superficie; mientras falte algo, dice qué falta.
 const doseTotal = (product, hectares) => {
   const total = productTotal(product.dose, hectares);
-  return total == null ? 'Total: —' : `Total: ${formatNumber(total)} ${product.uom}`.trim();
+  if (total != null) return `Total ${formatNumber(total)} ${product.uom}`.trim();
+  return product.dose === '' ? 'Escribe la dosis' : 'Faltan las hectáreas para el total';
 };
 
 const chip = (selected) =>
   cx(
-    'cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+    'inline-flex cursor-pointer items-center gap-1.5 rounded-full border py-1 pr-1.5 pl-3 text-xs font-semibold transition-colors',
     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gab-accent',
     selected
       ? 'border-gab-accent bg-gab-accent text-gab-accent-ink'
-      : 'border-gab-line bg-gab-bg text-gab-muted hover:text-gab-ink',
+      : 'border-gab-line bg-gab-surface text-gab-ink hover:border-gab-muted',
+  );
+// Cuántos productos tiene la categoría / cuántos llevas elegidos.
+const chipCount = (selected) =>
+  cx(
+    'rounded-full px-1.5 py-0.5 font-mono text-[10px] font-normal tabular-nums',
+    selected ? 'bg-white/15' : 'bg-gab-bg text-gab-muted',
+  );
+const chipPicked = (selected) =>
+  cx(
+    'inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 font-mono text-[10px] tabular-nums',
+    selected ? 'bg-white text-gab-accent' : 'bg-gab-accent text-gab-accent-ink',
   );
 
-// Categorías (adherente, fungicida, insecticida…): al tocar una aparece su lista.
-function TypeChips({ groups, typeId, onSelect }) {
+// Categorías (adherente, fungicida, insecticida…): al tocar una aparece su lista. La palomita dice
+// cuántos productos de esa categoría ya están elegidos.
+function TypeChips({ groups, typeId, chosenByType, onSelect }) {
   return (
     <div className="flex flex-wrap gap-1.5" role="group" aria-label="Categoría de producto">
-      {groups.map((group) => (
-        <button
-          key={group.id}
-          type="button"
-          aria-pressed={typeId === group.id}
-          className={chip(typeId === group.id)}
-          onClick={() => onSelect(typeId === group.id ? null : group.id)}
-        >
-          {group.name} <span className="font-normal opacity-75">{group.products.length}</span>
-        </button>
-      ))}
+      {groups.map((group) => {
+        const picked = chosenByType.get(group.id) ?? 0;
+        const selected = typeId === group.id;
+        return (
+          <button
+            key={group.id}
+            type="button"
+            aria-pressed={selected}
+            className={chip(selected)}
+            onClick={() => onSelect(selected ? null : group.id)}
+          >
+            {group.name}
+            {picked > 0 ? (
+              <span className={chipPicked(selected)}>
+                <Check size={11} strokeWidth={3} aria-hidden="true" />
+                {picked}
+                <span className="sr-only"> elegidos</span>
+              </span>
+            ) : (
+              <span className={chipCount(selected)}>{group.products.length}</span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-// Lista de productos de la categoría elegida, en orden alfabético.
-function ProductList({ items, chosen, onPick }) {
-  if (!items.length)
-    return <p className="mt-2 text-xs text-gab-muted">Ningún producto coincide en Odoo.</p>;
+// Dosis por hectárea de un producto ya elegido, con su unidad.
+function DoseInput({ product, invalid, doseInRecipe, onDose, autoFocus = false }) {
+  const id = `dose-${product.id}`;
   return (
-    <ul className="mt-2 max-h-64 list-none overflow-y-auto rounded-md border border-gab-line p-0">
-      {items.map((product) => {
-        const added = chosen.has(product.id);
+    <div className="relative w-[128px] shrink-0">
+      <label htmlFor={id} className="sr-only">
+        Dosis por hectárea de {product.name ?? product.type}
+      </label>
+      <input
+        id={id}
+        name={id}
+        type="number"
+        inputMode="decimal"
+        min="0"
+        step="any"
+        autoFocus={autoFocus}
+        value={product.dose}
+        onChange={(event) => onDose(product.id, event.target.value)}
+        // La rueda del ratón no debe cambiar la dosis sin querer.
+        onWheel={(event) => event.currentTarget.blur()}
+        aria-invalid={invalid}
+        className={cx(
+          numberInput,
+          'min-h-[36px] rounded-full py-1.5 pr-[52px] pl-3.5 text-right text-[13px]',
+        )}
+        placeholder={doseInRecipe ? 'Foto' : '0'}
+      />
+      <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-[11px] text-gab-muted">
+        {product.uom ? `${product.uom}/ha` : '/ha'}
+      </span>
+    </div>
+  );
+}
+
+const removeButton =
+  'grid size-8 shrink-0 cursor-pointer place-items-center rounded-full text-gab-muted transition-colors hover:bg-gab-bad-bg hover:text-gab-bad focus-visible:outline-2 focus-visible:outline-gab-accent';
+
+// Marca a la izquierda del renglón: palomita si ya está elegido, «+» si se puede agregar.
+const rowMark = (picked) =>
+  cx(
+    'grid size-5 shrink-0 place-items-center rounded-full border transition-colors',
+    picked
+      ? 'border-gab-accent bg-gab-accent text-gab-accent-ink'
+      : 'border-gab-line text-gab-muted group-hover:border-gab-accent group-hover:text-gab-accent',
+  );
+
+// Renglón de un producto ya elegido: su dosis ahí mismo y una X para quitarlo.
+function ChosenItem({ product, hectares, invalid, doseInRecipe, justAdded, onDose, onRemove }) {
+  return (
+    <div className="flex items-center gap-2.5 bg-gab-accent-soft py-2 pr-1.5 pl-3 shadow-[inset_3px_0_0_var(--gab-accent)]">
+      <span className={rowMark(true)} aria-hidden="true">
+        <Check size={12} strokeWidth={3} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] leading-tight font-semibold break-words">{product.name}</p>
+        <p className="mt-0.5 text-[11px] text-gab-muted">{doseTotal(product, hectares)}</p>
+      </div>
+      <DoseInput
+        product={product}
+        invalid={invalid}
+        doseInRecipe={doseInRecipe}
+        onDose={onDose}
+        autoFocus={justAdded}
+      />
+      <button
+        type="button"
+        className={removeButton}
+        aria-label={`Quitar ${product.name}`}
+        onClick={() => onRemove(product.id)}
+      >
+        <X size={15} />
+      </button>
+    </div>
+  );
+}
+
+// Lista de la categoría elegida, en orden alfabético. Tocar un producto lo elige y ahí mismo se
+// escribe su dosis; la X lo quita.
+function ProductList({ items, chosen, full, lastAdded, rowProps, onPick }) {
+  if (!items.length)
+    return (
+      <p className="mt-2 text-xs text-gab-muted">Esta categoría no tiene productos en Odoo.</p>
+    );
+  return (
+    <ul className="mt-3 max-h-72 list-none divide-y divide-gab-line overflow-y-auto rounded-lg border border-gab-line bg-gab-surface p-0">
+      {items.map((item) => {
+        const picked = chosen.get(item.id);
         return (
-          <li key={product.id} className="border-b border-gab-line last:border-b-0">
-            <button
-              type="button"
-              disabled={added}
-              onClick={() => onPick(product)}
-              className="flex w-full cursor-pointer items-center justify-between gap-3 px-3 py-2.5 text-left text-xs hover:bg-gab-accent-soft focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gab-accent disabled:cursor-not-allowed disabled:opacity-55"
-            >
-              <span className="min-w-0 break-words">{product.name}</span>
-              <span className="shrink-0 text-[11px] text-gab-muted">
-                {added ? 'Ya agregado' : product.uom}
-              </span>
-            </button>
+          <li key={item.id}>
+            {picked ? (
+              <ChosenItem
+                product={picked}
+                justAdded={lastAdded === item.id}
+                {...rowProps(picked)}
+              />
+            ) : (
+              <button
+                type="button"
+                disabled={full}
+                onClick={() => onPick(item)}
+                className="group flex w-full cursor-pointer items-center gap-2.5 px-3 py-2.5 text-left text-[13px] transition-colors hover:bg-gab-bg focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gab-accent disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                <span className={rowMark(false)} aria-hidden="true">
+                  <Plus size={12} strokeWidth={2.5} />
+                </span>
+                <span className="min-w-0 flex-1 break-words">{item.name}</span>
+                <span className="shrink-0 text-[11px] text-gab-muted">{item.uom}</span>
+              </button>
+            )}
           </li>
         );
       })}
     </ul>
-  );
-}
-
-// Escoger productos: se elige la categoría y aparece su lista; tocar un producto lo agrega.
-function ProductPicker({ catalog, chosen, disabled, onPick }) {
-  const [typeId, setTypeId] = useState(null);
-
-  if (catalog.loading) return <p className="text-xs text-gab-muted">Cargando productos de Odoo…</p>;
-  if (catalog.error)
-    return (
-      <p className="text-xs text-gab-bad">
-        {catalog.error}{' '}
-        <button
-          type="button"
-          className="cursor-pointer underline underline-offset-2"
-          onClick={catalog.reload}
-        >
-          Reintentar
-        </button>
-      </p>
-    );
-  return (
-    <>
-      <TypeChips groups={catalog.groups} typeId={typeId} onSelect={setTypeId} />
-      {typeId != null &&
-        (disabled ? (
-          <p className="mt-2 text-xs text-gab-muted">Ya tienes el máximo de productos.</p>
-        ) : (
-          <ProductList
-            items={filterProducts(catalog.groups, { typeId })}
-            chosen={chosen}
-            onPick={onPick}
-          />
-        ))}
-    </>
   );
 }
 
@@ -155,68 +235,61 @@ function PendingProduct({ product, options, invalid, onChoose }) {
   );
 }
 
-function ProductRow({
-  product,
-  hectares,
-  invalid,
-  doseInRecipe,
-  options = [],
-  onDose,
-  onRemove,
-  onChoose,
-}) {
-  const doseId = `dose-${product.id}`;
-  const pending = isPending(product);
-  const label = pending ? product.type : product.name;
+// Renglón de un tipo que la foto nombró sin decir el producto: se escoge de su lista.
+function PendingRow({ product, options, invalid, doseInRecipe, onDose, onRemove, onChoose }) {
   return (
-    <li className="grid grid-cols-[1fr_170px_auto] items-center gap-3 border-b border-gab-line py-3 last:border-b-0 max-sm:grid-cols-[1fr_auto]">
-      <div className="min-w-0">
-        {pending ? (
-          <PendingProduct
-            product={product}
-            options={options}
-            invalid={invalid}
-            onChoose={onChoose}
-          />
-        ) : (
-          <>
-            <p className="text-[13px] font-medium break-words">{product.name}</p>
-            <p className="mt-0.5 font-mono text-[11px] text-gab-muted tabular-nums">
-              {doseTotal(product, hectares)}
-            </p>
-          </>
-        )}
+    <li className="flex flex-wrap items-end gap-2 border-b border-gab-line px-3 py-3 last:border-b-0">
+      <div className="min-w-[180px] flex-1">
+        <PendingProduct product={product} options={options} invalid={invalid} onChoose={onChoose} />
       </div>
-      <div className="relative max-sm:order-3 max-sm:col-span-full">
-        <label htmlFor={doseId} className="sr-only">
-          Dosis por hectárea de {label}
-        </label>
-        <input
-          id={doseId}
-          name={`dose-${product.id}`}
-          type="number"
-          inputMode="decimal"
-          min="0"
-          step="any"
-          value={product.dose}
-          onChange={(event) => onDose(product.id, event.target.value)}
-          // La rueda del ratón no debe cambiar la dosis sin querer.
-          onWheel={(event) => event.currentTarget.blur()}
-          aria-invalid={invalid && !pending}
-          className={cx(unitInput, 'pr-[64px]')}
-          placeholder={doseInRecipe ? 'En la foto' : 'Dosis'}
-        />
-        <span className={unitLabel}>{product.uom ? `${product.uom}/ha` : '/ha'}</span>
-      </div>
+      <DoseInput product={product} invalid={false} doseInRecipe={doseInRecipe} onDose={onDose} />
       <button
         type="button"
-        className={iconButton}
-        aria-label={`Quitar ${label}`}
+        className={removeButton}
+        aria-label={`Quitar ${product.type}`}
         onClick={() => onRemove(product.id)}
       >
-        <Trash2 size={16} />
+        <X size={16} />
       </button>
     </li>
+  );
+}
+
+// Resumen de lo elegido en todas las categorías: nombre, dosis y una X para quitarlo.
+function ChosenSummary({ products, onRemove, onShow }) {
+  if (!products.length) return null;
+  return (
+    <div className="mt-3">
+      <p className="text-[11px] font-semibold text-gab-muted">Elegidos: {products.length}</p>
+      <ul className="mt-1.5 flex list-none flex-wrap gap-1.5 p-0">
+        {products.map((product) => (
+          <li
+            key={product.id}
+            className="inline-flex items-center rounded-full border border-gab-line bg-gab-surface text-xs"
+          >
+            <button
+              type="button"
+              className="cursor-pointer rounded-l-full py-1.5 pr-1 pl-3 text-left focus-visible:outline-2 focus-visible:outline-gab-accent"
+              title="Ver en su categoría"
+              onClick={() => onShow(product.typeId)}
+            >
+              <b className="font-semibold">{product.name}</b>{' '}
+              <span className="font-mono text-gab-muted tabular-nums">
+                {product.dose === '' ? 'sin dosis' : `${product.dose} ${product.uom}/ha`}
+              </span>
+            </button>
+            <button
+              type="button"
+              className="cursor-pointer rounded-r-full py-1.5 pr-2.5 pl-1 text-gab-muted hover:text-gab-bad focus-visible:outline-2 focus-visible:outline-gab-accent"
+              aria-label={`Quitar ${product.name}`}
+              onClick={() => onRemove(product.id)}
+            >
+              <X size={14} />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -324,8 +397,9 @@ function detectedMessage(found, added) {
     .join(' ');
 }
 
-// Productos de la aplicación: del catálogo de Odoo por categoría, con su dosis. La foto de la
-// receta es opcional: de ella se reconocen productos y, si trae las dosis, pueden quedar vacías.
+// Productos de la aplicación: del catálogo de Odoo por categoría. Al tocar un producto queda elegido
+// y su dosis se escribe en ese mismo renglón. La foto de la receta es opcional: de ella se
+// reconocen productos y, si trae las dosis, pueden quedar vacías.
 export default function ProductFields({ form, onLoad }) {
   const catalog = useProductCatalog(onLoad);
   const { products, hectares } = form.draft;
@@ -334,10 +408,29 @@ export default function ProductFields({ form, onLoad }) {
   // Con la foto de la receta, la dosis de cada producto puede quedarse vacía.
   const doseInRecipe = Boolean(form.draft.recipeFile);
   const [detected, setDetected] = useState('');
-  // Productos del tipo de un renglón pendiente que todavía no están en la lista.
-  const optionsFor = (pending) =>
-    (catalog.groups.find((group) => group.id === pending.typeId)?.products ?? []).filter(
-      (item) => !products.some((chosen) => chosen.id === item.id),
+  const [typeId, setTypeId] = useState(null);
+  const [lastAdded, setLastAdded] = useState(null);
+
+  const named = products.filter((product) => !isPending(product));
+  const pending = products.filter(isPending);
+  const chosen = new Map(named.map((product) => [product.id, product]));
+  const chosenByType = new Map();
+  for (const product of named)
+    chosenByType.set(product.typeId, (chosenByType.get(product.typeId) ?? 0) + 1);
+
+  const missingDose = (product) =>
+    !(Number(product.dose) > 0) && !(doseInRecipe && product.dose === '');
+  const rowProps = (product) => ({
+    hectares,
+    doseInRecipe,
+    invalid: Boolean(error) && missingDose(product),
+    onDose: form.setProductDose,
+    onRemove: form.removeProduct,
+  });
+  // Productos del tipo de un renglón pendiente que todavía no están elegidos.
+  const optionsFor = (item) =>
+    (catalog.groups.find((group) => group.id === item.typeId)?.products ?? []).filter(
+      (option) => !chosen.has(option.id),
     );
 
   // Reconoce en el texto leído de la foto los productos del catálogo y los agrega con su dosis.
@@ -348,48 +441,76 @@ export default function ProductFields({ form, onLoad }) {
     setDetected(detectedMessage(found, added));
   }
 
+  function pick(product) {
+    form.addProduct(product);
+    setLastAdded(product.id);
+  }
+
   return (
     <>
-      <ProductPicker
-        catalog={catalog}
-        chosen={new Set(products.map((product) => product.id))}
-        disabled={full}
-        onPick={form.addProduct}
-      />
-
-      <div className="mt-4 rounded-md border border-gab-line">
-        <p className="flex items-center justify-between gap-3 border-b border-gab-line bg-gab-bg px-3 py-2 text-xs font-semibold">
-          Productos elegidos
-          <span className="font-mono font-normal text-gab-muted tabular-nums">
-            {products.length}
-          </span>
+      {catalog.loading && <p className="text-xs text-gab-muted">Cargando productos de Odoo…</p>}
+      {catalog.error && (
+        <p className="text-xs text-gab-bad">
+          {catalog.error}{' '}
+          <button
+            type="button"
+            className="cursor-pointer underline underline-offset-2"
+            onClick={catalog.reload}
+          >
+            Reintentar
+          </button>
         </p>
-        {products.length ? (
-          <ul className="list-none px-3 py-0">
-            {products.map((product) => (
-              <ProductRow
+      )}
+      {!catalog.loading && !catalog.error && (
+        <>
+          <TypeChips
+            groups={catalog.groups}
+            typeId={typeId}
+            chosenByType={chosenByType}
+            onSelect={setTypeId}
+          />
+          {typeId != null && (
+            <ProductList
+              items={filterProducts(catalog.groups, { typeId })}
+              chosen={chosen}
+              full={full}
+              lastAdded={lastAdded}
+              rowProps={rowProps}
+              onPick={pick}
+            />
+          )}
+          {typeId == null && !products.length && (
+            <p className="mt-2 text-xs text-gab-muted">
+              Toca una categoría para ver sus productos. Al elegir uno, ahí mismo pones su dosis.
+            </p>
+          )}
+          {full && <p className="mt-2 text-xs text-gab-muted">Ya tienes el máximo de productos.</p>}
+        </>
+      )}
+
+      <ChosenSummary products={named} onRemove={form.removeProduct} onShow={setTypeId} />
+
+      {pending.length > 0 && (
+        <div className="mt-3 rounded-md border border-gab-line">
+          <p className="border-b border-gab-line bg-gab-bg px-3 py-2 text-xs font-semibold">
+            La foto no dice qué producto: escógelo
+          </p>
+          <ul className="list-none p-0">
+            {pending.map((product) => (
+              <PendingRow
                 key={product.id}
                 product={product}
-                hectares={hectares}
-                invalid={
-                  Boolean(error) &&
-                  (isPending(product) ||
-                    (!(Number(product.dose) > 0) && !(doseInRecipe && product.dose === '')))
-                }
+                options={optionsFor(product)}
+                invalid={Boolean(error)}
                 doseInRecipe={doseInRecipe}
-                options={isPending(product) ? optionsFor(product) : []}
                 onDose={form.setProductDose}
                 onRemove={form.removeProduct}
                 onChoose={form.choosePending}
               />
             ))}
           </ul>
-        ) : (
-          <p className="px-3 py-4 text-xs text-gab-muted">
-            Todavía no eliges ninguno. Toca una categoría de arriba para ver sus productos.
-          </p>
-        )}
-      </div>
+        </div>
+      )}
 
       <RecipeImage form={form} onRead={detect} />
       {detected && (
