@@ -15,6 +15,7 @@ test('el caso de uso elimina etiquetas enviadas por el navegador y mantiene apli
     hectares: '12.5',
     odooSupplierId: '6',
     applicationPeriodCode: 'Post-siembra',
+    applicationType: 'Dron',
     ratePerHectare: '400.50',
     date: '2026-11-01',
     ranch: 'Texto no confiable',
@@ -30,6 +31,7 @@ test('el caso de uso elimina etiquetas enviadas por el navegador y mantiene apli
   assert.equal(body.crop, undefined);
   assert.equal(body.odooSupplierId, 6);
   assert.equal(body.applicationPeriodCode, 'Post-siembra');
+  assert.equal(body.applicationType, 'Dron');
   assert.equal(body.ratePerHectare, 400.5);
   assert.equal(body.supplierName, undefined);
   assert.equal(body.applicationPeriodName, undefined);

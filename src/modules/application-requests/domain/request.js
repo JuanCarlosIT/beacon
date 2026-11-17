@@ -15,6 +15,7 @@ export function createRequestPayload(input) {
     hectares: Number(input.hectares),
     odooSupplierId: Number(input.odooSupplierId),
     applicationPeriodCode: input.applicationPeriodCode,
+    applicationType: input.applicationType,
     ratePerHectare: Number(input.ratePerHectare),
     recipeText: (input.recipeText || '').trim(),
     ...(input.recipeFileId ? { recipeFileId: input.recipeFileId } : {}),
@@ -25,6 +26,9 @@ export function createRequestPayload(input) {
     })),
   };
 }
+
+// Con qué se hace la aplicación.
+export const APPLICATION_TYPES = ['Avión', 'Dron'];
 
 export const requestStatuses = [
   { value: 'Todas', label: 'Todas' },

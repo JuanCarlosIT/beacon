@@ -71,6 +71,7 @@ function CardTags({ row }) {
         <Sprout size={13} aria-hidden="true" />
         {row.crop}
       </span>
+      {row.application_type && <span className={tag}>{row.application_type}</span>}
       {row.supplier_name && (
         <span className={tag} title={row.supplier_name}>
           {row.supplier_name}

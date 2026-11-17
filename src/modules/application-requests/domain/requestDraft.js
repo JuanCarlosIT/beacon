@@ -12,6 +12,7 @@ export const emptyDraft = () => ({
   hectares: '',
   supplierId: '',
   applicationPeriodCode: '',
+  applicationType: '',
   ratePerHectare: '',
   // Receta: anotada a mano, en una imagen ({ id, name }) y/o con productos del catálogo de Odoo
   // ([{ id, name, uom, dose }]). Basta una de las tres.
@@ -131,6 +132,7 @@ export const toRequestPayload = (draft, record) => ({
   hectares: Number(draft.hectares),
   odooSupplierId: Number(draft.supplierId),
   applicationPeriodCode: draft.applicationPeriodCode,
+  applicationType: draft.applicationType,
   ratePerHectare: Number(draft.ratePerHectare),
   recipeText: draft.recipeText.trim(),
   ...(draft.recipeFile ? { recipeFileId: draft.recipeFile.id } : {}),

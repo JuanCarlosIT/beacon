@@ -7,6 +7,7 @@ export function localToday() {
 }
 
 const MAX_RATE = 100000000;
+const APPLICATION_TYPES = ['Avión', 'Dron'];
 
 const isPositive = (value) => Number.isFinite(value) && value > 0;
 const hasAtMostTwoDecimals = (value) => Math.abs(value * 100 - Math.round(value * 100)) <= 0.000001;
@@ -51,6 +52,10 @@ const STEP_RULES = {
       inCatalog(catalog, 'suppliers', (item) => String(item.id) === String(supplierId))
         ? undefined
         : 'Elige un proveedor de la lista.',
+    applicationType: ({ applicationType }) =>
+      APPLICATION_TYPES.includes(applicationType)
+        ? undefined
+        : 'Elige si se aplica con avión o con dron.',
     applicationPeriodCode: ({ applicationPeriodCode: code }, { catalog }) =>
       code && inCatalog(catalog, 'applicationPeriods', (item) => item.code === code)
         ? undefined
@@ -63,7 +68,7 @@ const STEP_RULES = {
     },
     products({ products = [], recipeText = '', recipeFile = null }) {
       if (!products.length && !recipeText.trim() && !recipeFile)
-        return 'Indica qué se va a aplicar: anótalo, sube una imagen o agrega los productos.';
+        return 'Indica qué se va a aplicar: elige los productos o sube la foto de la receta.';
       if (recipeText.length > 4000)
         return 'La receta anotada no debe superar los 4,000 caracteres.';
       const pending = products.find((product) => product.pending);
@@ -77,7 +82,7 @@ const STEP_RULES = {
           ? !doseInRecipe
           : !isPositive(Number(product.dose));
       if (products.some(badDose))
-        return 'Pon la dosis por hectárea de cada producto, o anota la receta o sube su imagen con las dosis.';
+        return 'Pon la dosis por hectárea de cada producto, o sube la foto de la receta con las dosis.';
     },
   },
 };

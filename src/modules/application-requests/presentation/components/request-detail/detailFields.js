@@ -73,6 +73,7 @@ export const detailSections = (data, { showNotice = true } = {}) => [
     fields: [
       ['Proveedor solicitado', data.supplier_name || MISSING, true],
       ['RFC / referencia', data.supplier_vat || data.supplier_reference || 'No disponible'],
+      ['Tipo de aplicación', data.application_type || MISSING],
       ['Periodo de aplicación', data.application_period_name || MISSING],
       ['Tarifa por hectárea', rateLabel(data), true],
       ['Subtotal estimado (sin impuestos)', moneyOr(data.estimated_subtotal, 'No registrado')],

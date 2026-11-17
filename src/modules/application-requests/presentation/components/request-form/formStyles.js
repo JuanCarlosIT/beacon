@@ -20,4 +20,4 @@ export const textAction = cx(
 export const blockNote =
   'mx-6 my-[18px] rounded-md bg-gab-warn-bg px-[15px] py-3 text-xs leading-[1.8] text-gab-warn max-sm:mx-[18px] max-sm:my-4';
 export const fieldGrid =
-  'grid grid-cols-2 gap-x-6 gap-y-3.5 p-6 pt-3 max-sm:grid-cols-1 max-sm:gap-3 max-sm:p-[18px] max-sm:pt-1.5 min-[1000px]:grid-cols-3';
+  'mt-3 grid grid-cols-2 gap-x-6 gap-y-3.5 max-sm:grid-cols-1 max-sm:gap-3 min-[1000px]:grid-cols-4';

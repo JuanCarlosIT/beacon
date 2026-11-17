@@ -40,7 +40,7 @@ function EstimatedSubtotal({ value }) {
   );
 }
 
-// Proveedor, periodo, tarifa y subtotal estimado.
+// Proveedor, tarifa y subtotal estimado.
 export default function SupplierFields({ form, onAddSupplier }) {
   const { list, catalogLoading, catalogReady, field } = form;
   const canRegisterSupplier = list.supplierPermissions?.canRegister && onAddSupplier;
@@ -49,6 +49,7 @@ export default function SupplierFields({ form, onAddSupplier }) {
       <FormField
         {...field('supplierId')}
         label="Proveedor"
+        wide="half"
         required
         help="Solo aparecen proveedores autorizados en esta aplicación y activos en Odoo. Busca por nombre o RFC. Administración debe autorizar explícitamente cada nueva alta; no se modifican contactos en Odoo."
         hint={supplierHint(form.supplier)}
@@ -74,27 +75,6 @@ export default function SupplierFields({ form, onAddSupplier }) {
               </button>
             )}
           </>
-        )}
-      </FormField>
-      <FormField
-        {...field('applicationPeriodCode')}
-        label="Periodo de aplicación"
-        required
-        help="Indica si la aplicación corresponde a pre-siembra o post-siembra. Las opciones son las mismas que usa Odoo en las órdenes de compra."
-      >
-        {(props) => (
-          <ResponsiveSelect
-            {...props}
-            {...form.bindSelect('applicationPeriodCode')}
-            disabled={!catalogReady || !list.applicationPeriods.length}
-            placeholder="Selecciona periodo"
-            searchLabel="periodo de aplicación"
-            options={toOptions(
-              list.applicationPeriods,
-              (item) => item.name,
-              (item) => item.code,
-            )}
-          />
         )}
       </FormField>
       <FormField

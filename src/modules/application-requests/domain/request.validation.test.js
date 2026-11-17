@@ -11,6 +11,7 @@ const values = {
   hectares: '12.5',
   supplierId: '6',
   applicationPeriodCode: 'Post-siembra',
+  applicationType: 'Dron',
   ratePerHectare: '400.00',
   products: [{ id: 9, name: 'Producto', uom: 'L', dose: '1.5' }],
 };
@@ -32,6 +33,8 @@ test('proveedor y periodo deben existir en las listas y la tarifa ser positiva',
     { supplierId: '' },
     { supplierId: '999' },
     { applicationPeriodCode: '' },
+    { applicationType: '' },
+    { applicationType: 'Helicóptero' },
     { applicationPeriodCode: 'Libre' },
   ]) {
     assert.equal(Object.keys(validate({ ...values, ...change })).length, 1);
@@ -60,8 +63,8 @@ test('la receta vale anotada, con imagen o con productos; cada producto lleva su
   const validate = (recipe) =>
     validateRequestStep(2, { ...values, products: [], ...recipe }, { hectares: 20 }, '2026-10-31')
       .products;
-  assert.match(validate({}), /anótalo, sube una imagen o agrega los productos/);
-  assert.match(validate({ recipeText: '   ' }), /anótalo/);
+  assert.match(validate({}), /elige los productos o sube la foto de la receta/);
+  assert.match(validate({ recipeText: '   ' }), /elige los productos/);
   assert.equal(validate({ recipeText: '1 litro de adhesivo' }), undefined);
   assert.equal(validate({ recipeFile: { id: 'x', name: 'receta.png' } }), undefined);
   assert.match(validate({ products: [{ id: 9, dose: '' }] }), /dosis/);

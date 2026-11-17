@@ -4,7 +4,6 @@ import { confirmClear } from '../../../../../shared/feedback/alerts.js';
 import {
   addDetectedProducts,
   addProduct,
-  appendRecipeText,
   applyChange,
   authorizedRateOf,
   catalogIsComplete,
@@ -26,10 +25,10 @@ import {
 // Qué decir después de leer la imagen de la receta.
 function recipeImageMessage(read) {
   if (read.readFailed)
-    return 'La imagen quedó guardada, pero no se pudo leer su texto. Anota la receta a mano.';
+    return 'La foto quedó guardada, pero no se pudo leer su texto. Elige los productos por categoría.';
   return read.text
-    ? 'Se leyó el texto de la imagen y se agregó abajo. Revísalo y corrígelo si hace falta.'
-    : 'La imagen quedó guardada, pero no se le encontró texto legible. Puedes anotar la receta a mano.';
+    ? ''
+    : 'La foto quedó guardada, pero no se le encontró texto legible. Elige los productos por categoría.';
 }
 
 const OFFLINE_MESSAGE = 'No se puede guardar en este momento. Intenta de nuevo.';
@@ -60,7 +59,7 @@ export function useRequestForm({ catalog, catalogLoading, connected, onSave, onR
     return rate == null ? next : { ...next, ratePerHectare: String(rate) };
   }
 
-  // Imagen de la receta: se sube, se le lee el texto y lo leído se agrega a lo anotado.
+  // Imagen de la receta: se sube y se le lee el texto para reconocer sus productos.
   const [recipeImage, setRecipeImage] = useState({ reading: false, message: '' });
   async function attachRecipeImage(file) {
     if (!file || recipeImage.reading || !onReadRecipeImage) return null;
@@ -72,7 +71,6 @@ export function useRequestForm({ catalog, catalogLoading, connected, onSave, onR
       setDraft((current) => ({
         ...current,
         recipeFile: { id: read.id, name: read.name },
-        recipeText: appendRecipeText(current.recipeText, read.text),
       }));
       setRecipeImage({ reading: false, message: recipeImageMessage(read) });
       return read;
@@ -153,14 +151,9 @@ export function useRequestForm({ catalog, catalogLoading, connected, onSave, onR
     // Se escoge el producto de un tipo detectado sin producto («1 litro de adherente»).
     choosePending: (pendingKey, product) =>
       changeProducts((products) => choosePending(products, pendingKey, product)),
-    // Productos del catálogo reconocidos en un texto (lo anotado o lo leído de la foto).
+    // Productos del catálogo reconocidos en el texto leído de la foto.
     addDetectedProducts: (detected) =>
       changeProducts((products) => addDetectedProducts(products, detected)),
-    setRecipeText: (text) => {
-      setSaveError('');
-      setErrors((current) => omitKeys(current, ['products']));
-      setDraft((current) => ({ ...current, recipeText: text }));
-    },
     recipeImage,
     attachRecipeImage,
     removeRecipeImage,

@@ -9,6 +9,7 @@ import {
   Layers,
   MapPin,
   MapPinned,
+  Plane,
   Ruler,
   Sprout,
 } from 'lucide-react';
@@ -25,6 +26,7 @@ const FIELD_ICONS = {
   hectares: Ruler,
   supplierId: Building2,
   applicationPeriodCode: CalendarDays,
+  applicationType: Plane,
   ratePerHectare: Banknote,
 };
 
@@ -73,7 +75,7 @@ export default function FormField({
 }) {
   const Icon = FIELD_ICONS[name];
   return (
-    <div className={cx('min-w-0', wide && 'col-span-full')}>
+    <div className={cx('min-w-0', wide === 'half' ? 'sm:col-span-2' : wide && 'col-span-full')}>
       <div className="relative mb-[7px] flex items-center gap-2 max-sm:mb-1">
         <label
           id={`${id}-label`}

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AlertCircle, Camera, FlaskConical, ImageUp, ListPlus, Search, Trash2 } from 'lucide-react';
+import { AlertCircle, Camera, ImageUp, Trash2 } from 'lucide-react';
 import { formatNumber } from '../../../../../shared/formatting/formatters.js';
-import { btnSecondary, cx, iconButton, textAction } from '../../../../../shared/ui/classes.js';
+import { btnSecondary, cx, iconButton } from '../../../../../shared/ui/classes.js';
 import {
   MAX_PRODUCTS,
   detectProducts,
@@ -44,10 +44,10 @@ const chip = (selected) =>
       : 'border-gab-line bg-gab-bg text-gab-muted hover:text-gab-ink',
   );
 
-// Tipos de producto (adherente, fungicida, insecticida…) para escoger de cuál ver la lista.
+// Categorías (adherente, fungicida, insecticida…): al tocar una aparece su lista.
 function TypeChips({ groups, typeId, onSelect }) {
   return (
-    <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Tipo de producto">
+    <div className="flex flex-wrap gap-1.5" role="group" aria-label="Categoría de producto">
       {groups.map((group) => (
         <button
           key={group.id}
@@ -63,8 +63,8 @@ function TypeChips({ groups, typeId, onSelect }) {
   );
 }
 
-// Lista de productos del tipo elegido (o los que coinciden con lo escrito), en orden alfabético.
-function ProductList({ items, showType, chosen, onPick }) {
+// Lista de productos de la categoría elegida, en orden alfabético.
+function ProductList({ items, chosen, onPick }) {
   if (!items.length)
     return <p className="mt-2 text-xs text-gab-muted">Ningún producto coincide en Odoo.</p>;
   return (
@@ -79,12 +79,7 @@ function ProductList({ items, showType, chosen, onPick }) {
               onClick={() => onPick(product)}
               className="flex w-full cursor-pointer items-center justify-between gap-3 px-3 py-2.5 text-left text-xs hover:bg-gab-accent-soft focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gab-accent disabled:cursor-not-allowed disabled:opacity-55"
             >
-              <span className="min-w-0 break-words">
-                {product.name}
-                {showType && (
-                  <span className="ml-2 text-[11px] text-gab-muted">{product.type}</span>
-                )}
-              </span>
+              <span className="min-w-0 break-words">{product.name}</span>
               <span className="shrink-0 text-[11px] text-gab-muted">
                 {added ? 'Ya agregado' : product.uom}
               </span>
@@ -96,18 +91,14 @@ function ProductList({ items, showType, chosen, onPick }) {
   );
 }
 
-// Escoger productos: primero el tipo, luego el producto de la lista. Escribir filtra por nombre.
-function ProductPicker({ catalog, chosen, disabled, invalid, onPick }) {
+// Escoger productos: se elige la categoría y aparece su lista; tocar un producto lo agrega.
+function ProductPicker({ catalog, chosen, disabled, onPick }) {
   const [typeId, setTypeId] = useState(null);
-  const [text, setText] = useState('');
-  const browsing = typeId != null || text.trim().length >= 2;
-  const items = browsing ? filterProducts(catalog.groups, { typeId, text }) : [];
 
-  if (catalog.loading)
-    return <p className="mt-2 text-xs text-gab-muted">Cargando productos de Odoo…</p>;
+  if (catalog.loading) return <p className="text-xs text-gab-muted">Cargando productos de Odoo…</p>;
   if (catalog.error)
     return (
-      <p className="mt-2 text-xs text-gab-bad">
+      <p className="text-xs text-gab-bad">
         {catalog.error}{' '}
         <button
           type="button"
@@ -121,43 +112,16 @@ function ProductPicker({ catalog, chosen, disabled, invalid, onPick }) {
   return (
     <>
       <TypeChips groups={catalog.groups} typeId={typeId} onSelect={setTypeId} />
-      <div className="relative mt-2">
-        <Search
-          size={15}
-          aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-gab-muted"
-        />
-        <input
-          name="products"
-          type="search"
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          disabled={disabled}
-          aria-label="Filtrar productos por nombre"
-          aria-invalid={invalid}
-          className={cx(fieldInput, 'pl-9')}
-          placeholder={
-            disabled
-              ? 'La receta ya tiene el máximo de productos'
-              : 'Escribe para filtrar por nombre'
-          }
-        />
-      </div>
-      {browsing ? (
-        <ProductList
-          items={items}
-          showType={typeId == null}
-          chosen={chosen}
-          onPick={(product) => {
-            onPick(product);
-            setText('');
-          }}
-        />
-      ) : (
-        <p className="mt-2 text-[11px] text-gab-muted">
-          Elige un tipo para ver su lista, o escribe el nombre del producto.
-        </p>
-      )}
+      {typeId != null &&
+        (disabled ? (
+          <p className="mt-2 text-xs text-gab-muted">Ya tienes el máximo de productos.</p>
+        ) : (
+          <ProductList
+            items={filterProducts(catalog.groups, { typeId })}
+            chosen={chosen}
+            onPick={onPick}
+          />
+        ))}
     </>
   );
 }
@@ -240,7 +204,7 @@ function ProductRow({
           onWheel={(event) => event.currentTarget.blur()}
           aria-invalid={invalid && !pending}
           className={cx(unitInput, 'pr-[64px]')}
-          placeholder={doseInRecipe ? 'En la receta' : 'Dosis'}
+          placeholder={doseInRecipe ? 'En la foto' : 'Dosis'}
         />
         <span className={unitLabel}>{product.uom ? `${product.uom}/ha` : '/ha'}</span>
       </div>
@@ -260,7 +224,7 @@ const MAX_IMAGE_MB = 10;
 const pickerButton = cx(btnSecondary, 'min-h-[40px]');
 
 // Imagen de la receta: foto con la cámara del teléfono o una captura/imagen ya guardada.
-// Al elegirla se sube y se le lee el texto, que cae en el cuadro de la receta anotada.
+// Al elegirla se sube y se le lee el texto para reconocer sus productos.
 function RecipeImage({ form, onRead }) {
   const cameraRef = useRef(null);
   const filesRef = useRef(null);
@@ -280,7 +244,8 @@ function RecipeImage({ form, onRead }) {
   }
 
   return (
-    <div className="mt-3">
+    <div className="mt-4 border-t border-gab-line pt-4">
+      <p className="mb-2 text-xs font-semibold">Foto de la receta</p>
       <input
         ref={cameraRef}
         type="file"
@@ -345,38 +310,37 @@ function RecipeImage({ form, onRead }) {
 // Qué decir después de buscar productos en un texto.
 function detectedMessage(found, added) {
   if (!found.length)
-    return 'No se reconoció ningún producto ni tipo en el texto. Escógelos de la lista o deja la receta anotada.';
-  if (!added.length) return 'Lo que dice el texto ya estaba en la receta.';
+    return 'No se reconoció ningún producto en la foto. Escógelos por categoría; la foto queda guardada con la solicitud.';
+  if (!added.length) return 'Lo que dice la foto ya estaba en la lista.';
   const named = added.filter((item) => !isPending(item)).map((item) => item.name);
   const pending = added.filter(isPending).map((item) => item.type);
   return [
-    named.length && `Se agregaron del texto: ${named.join(', ')}.`,
+    named.length && `Se agregaron de la foto: ${named.join(', ')}.`,
     pending.length &&
-      `El texto dice la dosis de ${pending.join(', ')} sin decir el producto: escógelo en su renglón.`,
+      `La foto dice la dosis de ${pending.join(', ')} sin decir el producto: escógelo en su renglón.`,
     'Revisa las dosis antes de guardar.',
   ]
     .filter(Boolean)
     .join(' ');
 }
 
-// Receta de la aplicación. Primero los productos del catálogo de Odoo con su dosis; si no están ahí,
-// se puede anotar o subir una imagen (se le lee el texto). Basta una de las tres.
+// Productos de la aplicación: del catálogo de Odoo por categoría, con su dosis. La foto de la
+// receta es opcional: de ella se reconocen productos y, si trae las dosis, pueden quedar vacías.
 export default function ProductFields({ form, onLoad }) {
   const catalog = useProductCatalog(onLoad);
-  const { products, hectares, recipeText } = form.draft;
+  const { products, hectares } = form.draft;
   const error = form.errors.products;
   const full = products.length >= MAX_PRODUCTS;
-  // Con receta anotada o imagen, la dosis de cada producto puede quedarse vacía.
-  const doseInRecipe = Boolean(recipeText.trim() || form.draft.recipeFile);
+  // Con la foto de la receta, la dosis de cada producto puede quedarse vacía.
+  const doseInRecipe = Boolean(form.draft.recipeFile);
   const [detected, setDetected] = useState('');
-  // Productos del tipo de un renglón pendiente que todavía no están en la receta.
+  // Productos del tipo de un renglón pendiente que todavía no están en la lista.
   const optionsFor = (pending) =>
     (catalog.groups.find((group) => group.id === pending.typeId)?.products ?? []).filter(
       (item) => !products.some((chosen) => chosen.id === item.id),
     );
 
-  // Reconoce en un texto (lo anotado o lo leído de la foto) los productos del catálogo y los
-  // agrega con la dosis que traigan. Lo que no reconoce se queda en la receta anotada.
+  // Reconoce en el texto leído de la foto los productos del catálogo y los agrega con su dosis.
   function detect(text) {
     const found = detectProducts(text, catalog.groups);
     const added = newDetections(products, found);
@@ -385,30 +349,49 @@ export default function ProductFields({ form, onLoad }) {
   }
 
   return (
-    <section
-      className="mx-6 mb-5 border-t border-gab-line pt-4 max-sm:mx-[18px]"
-      aria-labelledby="recipe-title"
-    >
-      <h3
-        id="recipe-title"
-        className="flex items-center gap-2 text-xs font-semibold [&>svg]:text-gab-accent"
-      >
-        <FlaskConical size={16} aria-hidden="true" />
-        Receta: qué se va a aplicar <span className="text-gab-muted">*</span>
-      </h3>
-      <p className="mt-1.5 text-[11px] leading-[1.75] text-gab-muted">
-        Elige el tipo (adherente, fungicida, insecticida…) y toca el producto. La dosis por hectárea
-        es opcional si ya viene en la receta anotada o en la foto de abajo.
-      </p>
-
-      <p className="mt-3 text-[11px] font-semibold">Productos del catálogo de Odoo</p>
+    <>
       <ProductPicker
         catalog={catalog}
         chosen={new Set(products.map((product) => product.id))}
         disabled={full}
-        invalid={Boolean(error)}
         onPick={form.addProduct}
       />
+
+      <div className="mt-4 rounded-md border border-gab-line">
+        <p className="flex items-center justify-between gap-3 border-b border-gab-line bg-gab-bg px-3 py-2 text-xs font-semibold">
+          Productos elegidos
+          <span className="font-mono font-normal text-gab-muted tabular-nums">
+            {products.length}
+          </span>
+        </p>
+        {products.length ? (
+          <ul className="list-none px-3 py-0">
+            {products.map((product) => (
+              <ProductRow
+                key={product.id}
+                product={product}
+                hectares={hectares}
+                invalid={
+                  Boolean(error) &&
+                  (isPending(product) ||
+                    (!(Number(product.dose) > 0) && !(doseInRecipe && product.dose === '')))
+                }
+                doseInRecipe={doseInRecipe}
+                options={isPending(product) ? optionsFor(product) : []}
+                onDose={form.setProductDose}
+                onRemove={form.removeProduct}
+                onChoose={form.choosePending}
+              />
+            ))}
+          </ul>
+        ) : (
+          <p className="px-3 py-4 text-xs text-gab-muted">
+            Todavía no eliges ninguno. Toca una categoría de arriba para ver sus productos.
+          </p>
+        )}
+      </div>
+
+      <RecipeImage form={form} onRead={detect} />
       {detected && (
         <p
           className="mt-2 rounded-md bg-gab-accent-soft px-3 py-2 text-[11px] leading-[1.7]"
@@ -418,61 +401,15 @@ export default function ProductFields({ form, onLoad }) {
           {detected}
         </p>
       )}
-
-      {products.length > 0 && (
-        <ul className="mt-3 list-none p-0">
-          {products.map((product) => (
-            <ProductRow
-              key={product.id}
-              product={product}
-              hectares={hectares}
-              invalid={
-                Boolean(error) &&
-                (isPending(product) ||
-                  (!(Number(product.dose) > 0) && !(doseInRecipe && product.dose === '')))
-              }
-              doseInRecipe={doseInRecipe}
-              options={isPending(product) ? optionsFor(product) : []}
-              onDose={form.setProductDose}
-              onRemove={form.removeProduct}
-              onChoose={form.choosePending}
-            />
-          ))}
-        </ul>
-      )}
-
-      <label htmlFor="recipe-text" className="mt-4 block text-[11px] font-semibold">
-        O anota la receta{' '}
-        <span className="font-normal text-gab-muted">
-          Si el producto no está en Odoo o quieres agregar indicaciones
-        </span>
-      </label>
-      <textarea
-        id="recipe-text"
-        rows={3}
-        maxLength={4000}
-        value={recipeText}
-        onChange={(event) => form.setRecipeText(event.target.value)}
-        className={cx(fieldInput, 'mt-1.5 resize-y')}
-        placeholder="Ej. 1 litro de adhesivo, 2 litros de fungicida por hectárea…"
-      />
-      <div className="mt-1.5 flex justify-end">
-        <button
-          type="button"
-          className={textAction}
-          disabled={!recipeText.trim() || catalog.loading}
-          onClick={() => detect(recipeText)}
-        >
-          <ListPlus size={14} /> Pasar lo anotado a productos
-        </button>
-      </div>
-      <RecipeImage form={form} onRead={detect} />
       {error && (
-        <p className="mt-2 flex items-start gap-1.5 text-xs leading-[1.6] text-gab-bad [&>svg]:mt-0.5 [&>svg]:shrink-0">
+        <p
+          data-error="products"
+          className="mt-3 flex items-start gap-1.5 text-xs leading-[1.6] text-gab-bad [&>svg]:mt-0.5 [&>svg]:shrink-0"
+        >
           <AlertCircle size={14} />
           {error}
         </p>
       )}
-    </section>
+    </>
   );
 }

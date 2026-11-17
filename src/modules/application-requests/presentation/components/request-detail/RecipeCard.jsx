@@ -86,7 +86,10 @@ function Notes({ text }) {
 // con dosis y total, y la receta anotada (o leída de la foto).
 export default function RecipeCard({ data, onLoadImage, onDownloadImage }) {
   const products = data.products ?? [];
-  const imageOnly = Boolean(data.recipe_file) && !products.length && !data.recipe_text;
+  // La foto se muestra cuando es lo único, o cuando ahí vienen dosis que no se capturaron.
+  const dosesInImage = products.some((product) => product.dose_per_hectare == null);
+  const imageOnly =
+    Boolean(data.recipe_file) && !data.recipe_text && (!products.length || dosesInImage);
   return (
     <section className={sectionClass} aria-labelledby="recipe-card-title">
       <div className="overflow-hidden rounded-lg border border-gab-line bg-gab-surface">

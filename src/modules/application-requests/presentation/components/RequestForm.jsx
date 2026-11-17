@@ -6,7 +6,8 @@ import CatalogStatus from './request-form/CatalogStatus.jsx';
 import LocationFields from './request-form/LocationFields.jsx';
 import SupplierFields from './request-form/SupplierFields.jsx';
 import ProductFields from './request-form/ProductFields.jsx';
-import { fieldGrid } from './request-form/formStyles.js';
+import FormSection from './request-form/FormSection.jsx';
+import ScheduleFields from './request-form/ScheduleFields.jsx';
 
 // El error de «registro del lote» va arriba si su select no está visible (una sola coincidencia).
 const errorSummary = (errors, matching) =>
@@ -35,11 +36,27 @@ export default function RequestForm({
           error={catalogError}
           onReload={reloadCatalog}
         />
-        <div className={fieldGrid}>
+        <FormSection
+          step={1}
+          title="Lugar"
+          note="Ciclo, zona, lote y cultivo, tal como están en Odoo."
+        >
           <LocationFields form={form} />
+        </FormSection>
+        <FormSection step={2} title="Aplicación" note="Fecha, superficie, avión o dron y periodo.">
+          <ScheduleFields form={form} />
+        </FormSection>
+        <FormSection step={3} title="Proveedor y costo" note="Quién aplica y a qué tarifa.">
           <SupplierFields form={form} onAddSupplier={onAddSupplier} />
-        </div>
-        <ProductFields form={form} onLoad={onLoadProducts} />
+        </FormSection>
+        <FormSection
+          step={4}
+          title="Productos"
+          note="Elige la categoría y toca el producto. También puedes subir la foto de la receta."
+          grid={false}
+        >
+          <ProductFields form={form} onLoad={onLoadProducts} />
+        </FormSection>
         {hasErrors && (
           <p className="mx-6 mb-5 flex items-center gap-2 text-xs text-gab-bad" role="alert">
             <AlertCircle size={16} />
