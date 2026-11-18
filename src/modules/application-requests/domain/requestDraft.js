@@ -79,11 +79,12 @@ export function deriveSelection(list, draft) {
 export const authorizedRateOf = (list, cycleId) =>
   list.cycleRates.find(whereKey('cycleId', String(cycleId)))?.ratePerHectare ?? null;
 
-// Capturar igual o menos que la autorizada es libre; más (o un ciclo sin tarifa) pide autorización.
+// Capturar igual o menos que la autorizada es libre; más pide autorización. Sin tarifa autorizada
+// en el ciclo, cualquier tarifa es libre.
 export function rateNeedsAuthorization(ratePerHectare, authorizedRate) {
   const rate = Number(ratePerHectare);
   if (!(rate > 0)) return false;
-  return authorizedRate == null || rate > authorizedRate;
+  return authorizedRate != null && rate > authorizedRate;
 }
 
 // --- Receta ---------------------------------------------------------------------------

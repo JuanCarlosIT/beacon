@@ -22,7 +22,10 @@ export function createRequestUseCases(repository) {
     reviewRemission: (id, status) => repository.reviewRemission(id, status),
     downloadRemission: (remission) =>
       repository.downloadRemission(remission.id, remission.original_name),
-    // Catálogo de Odoo para la receta: [{ id, name: 'Fungicida', products: [...] }].
+    // Productos de la receta, por pasos: los tipos ([{ id, name, count }]), los productos de un
+    // tipo ([{ id, name, uom }]) y, solo para reconocer una foto, la lista completa por tipo.
+    loadProductTypes: () => repository.productTypes(),
+    loadProductsOfType: (typeId) => repository.productsOfType(typeId),
     loadProductGroups: () => repository.productGroups(),
     // Sube la imagen de la receta; regresa { id, name, text, readFailed } con el texto leído.
     uploadRecipeImage: (file) => repository.uploadRecipeImage(file),

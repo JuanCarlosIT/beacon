@@ -5,29 +5,60 @@ import { btnSecondary, cx } from '../../../../../shared/ui/classes.js';
 import {
   MAX_PRODUCTS,
   detectProducts,
-  filterProducts,
   isPending,
   newDetections,
   productTotal,
 } from '../../../domain/requestDraft.js';
 import { fieldInput, numberInput } from './formStyles.js';
 
-// Catálogo de Odoo para la receta, ya separado por tipo. Se carga una vez al abrir el formulario.
-function useProductCatalog(onLoad) {
-  const [state, setState] = useState({ groups: [], loading: true, error: '' });
+// Productos de la receta, por pasos. Al abrir el formulario solo se piden los tipos; los productos
+// de un tipo se piden la primera vez que se abre y se guardan; la lista completa solo se pide para
+// reconocer los productos de una foto.
+function useProductCatalog(source) {
+  const [state, setState] = useState({ types: [], loading: true, error: '' });
+  const [byType, setByType] = useState(() => new Map());
+  const asked = useRef(new Set());
+  const everything = useRef(null);
+
   const load = useCallback(async () => {
-    if (!onLoad) return setState({ groups: [], loading: false, error: '' });
+    if (!source) return setState({ types: [], loading: false, error: '' });
     setState((previous) => ({ ...previous, loading: true, error: '' }));
     try {
-      setState({ groups: await onLoad(), loading: false, error: '' });
+      setState({ types: await source.types(), loading: false, error: '' });
     } catch (error) {
-      setState({ groups: [], loading: false, error: error.message });
+      setState({ types: [], loading: false, error: error.message });
     }
-  }, [onLoad]);
+  }, [source]);
   useEffect(() => {
     load();
   }, [load]);
-  return { ...state, reload: load };
+
+  // Pide los productos de un tipo una sola vez. null = cargando, [] = no tiene.
+  const loadType = useCallback(
+    async (typeId) => {
+      if (!source || typeId == null || asked.current.has(typeId)) return;
+      asked.current.add(typeId);
+      try {
+        const products = await source.ofType(typeId);
+        setByType((current) => new Map(current).set(typeId, products));
+      } catch {
+        asked.current.delete(typeId);
+        setByType((current) => new Map(current).set(typeId, undefined));
+      }
+    },
+    [source],
+  );
+
+  // Lista completa por tipo ([{ id, name, products }]), para buscar en el texto de una foto.
+  const loadAll = useCallback(async () => {
+    everything.current ??= source.all().catch((error) => {
+      everything.current = null;
+      throw error;
+    });
+    return everything.current;
+  }, [source]);
+
+  return { ...state, byType, reload: load, loadType, loadAll };
 }
 
 // Total a llevar según la dosis y la superficie; mientras falte algo, dice qué falta.
@@ -81,7 +112,7 @@ function TypeChips({ groups, typeId, chosenByType, onSelect }) {
                 <span className="sr-only"> elegidos</span>
               </span>
             ) : (
-              <span className={chipCount(selected)}>{group.products.length}</span>
+              <span className={chipCount(selected)}>{group.count}</span>
             )}
           </button>
         );
@@ -169,6 +200,7 @@ function ChosenItem({ product, hectares, invalid, doseInRecipe, justAdded, onDos
 // Lista de la categoría elegida, en orden alfabético. Tocar un producto lo elige y ahí mismo se
 // escribe su dosis; la X lo quita.
 function ProductList({ items, chosen, full, lastAdded, rowProps, onPick }) {
+  if (!items) return <p className="mt-2 text-xs text-gab-muted">Cargando productos…</p>;
   if (!items.length)
     return (
       <p className="mt-2 text-xs text-gab-muted">Esta categoría no tiene productos en Odoo.</p>
@@ -400,8 +432,8 @@ function detectedMessage(found, added) {
 // Productos de la aplicación: del catálogo de Odoo por categoría. Al tocar un producto queda elegido
 // y su dosis se escribe en ese mismo renglón. La foto de la receta es opcional: de ella se
 // reconocen productos y, si trae las dosis, pueden quedar vacías.
-export default function ProductFields({ form, onLoad }) {
-  const catalog = useProductCatalog(onLoad);
+export default function ProductFields({ form, source }) {
+  const catalog = useProductCatalog(source);
   const { products, hectares } = form.draft;
   const error = form.errors.products;
   const full = products.length >= MAX_PRODUCTS;
@@ -418,6 +450,20 @@ export default function ProductFields({ form, onLoad }) {
   for (const product of named)
     chosenByType.set(product.typeId, (chosenByType.get(product.typeId) ?? 0) + 1);
 
+  // Se piden los productos del tipo abierto y de los renglones que esperan producto.
+  const { loadType } = catalog;
+  const wanted = [typeId, ...pending.map((item) => item.typeId)].filter((id) => id != null);
+  const wantedKey = wanted.join(',');
+  useEffect(() => {
+    wanted.forEach(loadType);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantedKey, loadType]);
+
+  const typeName = catalog.types.find((type) => type.id === typeId)?.name;
+  const items = catalog.byType
+    .get(typeId)
+    ?.map((product) => ({ ...product, typeId, type: typeName }));
+
   const missingDose = (product) =>
     !(Number(product.dose) > 0) && !(doseInRecipe && product.dose === '');
   const rowProps = (product) => ({
@@ -429,16 +475,21 @@ export default function ProductFields({ form, onLoad }) {
   });
   // Productos del tipo de un renglón pendiente que todavía no están elegidos.
   const optionsFor = (item) =>
-    (catalog.groups.find((group) => group.id === item.typeId)?.products ?? []).filter(
-      (option) => !chosen.has(option.id),
-    );
+    (catalog.byType.get(item.typeId) ?? []).filter((option) => !chosen.has(option.id));
 
   // Reconoce en el texto leído de la foto los productos del catálogo y los agrega con su dosis.
-  function detect(text) {
-    const found = detectProducts(text, catalog.groups);
-    const added = newDetections(products, found);
-    form.addDetectedProducts(found);
-    setDetected(detectedMessage(found, added));
+  async function detect(text) {
+    try {
+      const groups = await catalog.loadAll();
+      const found = detectProducts(text, groups);
+      const added = newDetections(products, found);
+      form.addDetectedProducts(found);
+      setDetected(detectedMessage(found, added));
+    } catch {
+      setDetected(
+        'La foto quedó guardada, pero no se pudieron reconocer sus productos. Elígelos por categoría.',
+      );
+    }
   }
 
   function pick(product) {
@@ -464,14 +515,14 @@ export default function ProductFields({ form, onLoad }) {
       {!catalog.loading && !catalog.error && (
         <>
           <TypeChips
-            groups={catalog.groups}
+            groups={catalog.types}
             typeId={typeId}
             chosenByType={chosenByType}
             onSelect={setTypeId}
           />
           {typeId != null && (
             <ProductList
-              items={filterProducts(catalog.groups, { typeId })}
+              items={items}
               chosen={chosen}
               full={full}
               lastAdded={lastAdded}

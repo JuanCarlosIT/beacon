@@ -14,9 +14,8 @@ const supplierHint = (supplier) =>
 
 // Pista de la tarifa: la autorizada del ciclo y qué pasa si se captura una mayor.
 function rateHint(form) {
-  if (!form.draft.cycleId) return 'Elige el ciclo para ver su tarifa autorizada.';
   if (form.authorizedRate == null)
-    return 'Este ciclo todavía no tiene tarifa autorizada: la tarifa que captures quedará pendiente de autorización.';
+    return 'Captura la tarifa acordada con el proveedor, en pesos por hectárea y sin impuestos.';
   const authorized = `Tarifa autorizada del ciclo: ${formatMoney(form.authorizedRate)} MXN/ha.`;
   return form.rateNeedsAuthorization
     ? `${authorized} Capturaste una mayor: quedará pendiente de autorización antes de continuar.`
@@ -81,7 +80,7 @@ export default function SupplierFields({ form, onAddSupplier }) {
         {...field('ratePerHectare')}
         label="Tarifa por hectárea"
         required
-        help="Se propone la tarifa autorizada del ciclo. Puedes bajarla libremente; si la subes, la solicitud espera a que quien autoriza tarifas la apruebe. Pesos mexicanos por hectárea, sin impuestos."
+        help="Pesos mexicanos por hectárea, sin impuestos. Si el ciclo tiene una tarifa autorizada, se propone esa: puedes bajarla libremente y subirla pide autorización."
         hint={rateHint(form)}
       >
         {(props) => (

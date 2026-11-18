@@ -37,6 +37,9 @@ export const requestApiRepository = {
   downloadRecipeImage: (id, fileName) =>
     httpFile(`/recipe-files/${encodeURIComponent(id)}`, fileName),
   productGroups: () => httpRequest('/catalogs/product-groups'),
+  productTypes: () => httpRequest('/catalogs/product-types'),
+  productsOfType: (typeId) =>
+    httpRequest(`/catalogs/product-types/${encodeURIComponent(typeId)}/products`),
   cycleRates: () => httpRequest('/cycle-rates'),
   saveCycleRate: (cycleId, ratePerHectare) =>
     httpRequest(`/cycle-rates/${encodeURIComponent(cycleId)}`, json('PUT', { ratePerHectare })),

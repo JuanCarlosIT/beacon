@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { getGabThemeStyle } from '../../../shared/theme/theme.js';
 import {
   confirmSaved,
@@ -66,6 +66,15 @@ function initialTab(parts) {
 
 export default function ApplicationRequestsModule({ useCases, theme = 'light', view = 'capture' }) {
   const state = useRequests(useCases);
+  // Productos de la receta, por pasos: tipos, productos de un tipo y (para una foto) todos.
+  const productSource = useMemo(
+    () => ({
+      types: useCases.loadProductTypes,
+      ofType: useCases.loadProductsOfType,
+      all: useCases.loadProductGroups,
+    }),
+    [useCases],
+  );
   const parts = VIEW_PARTS[view] ?? VIEW_PARTS.capture;
   const user = useCurrentUser(useCases);
   const [query, setQuery] = useState('');
@@ -200,7 +209,7 @@ export default function ApplicationRequestsModule({ useCases, theme = 'light', v
               reloadCatalog={() => state.reloadCatalog(true)}
               onSave={register}
               onAddSupplier={() => setShowSupplierRegistration(true)}
-              onLoadProducts={useCases.loadProductGroups}
+              productSource={productSource}
               onReadRecipeImage={useCases.uploadRecipeImage}
             />
           </CapturePanel>

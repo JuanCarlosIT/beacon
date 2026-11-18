@@ -1,11 +1,17 @@
 import { RefreshCw, ShieldCheck } from 'lucide-react';
 import { cx, iconButton } from '../../../../../shared/ui/classes.js';
+import { formatDateTime } from '../../../../../shared/formatting/formatters.js';
 import { blockNote } from './formStyles.js';
 
 const statusText = ({ loading, error }) =>
   loading
     ? 'Cargando Odoo…'
     : error || 'Selecciona ciclo → zona → predio. El cultivo se completa desde Odoo.';
+
+// Odoo no respondió y se está trabajando con la copia guardada.
+const usesBackup = (catalog) => catalog?.source === 'respaldo';
+const backupNote = (catalog) =>
+  `Odoo no responde. Se muestran los datos guardados el ${formatDateTime(catalog.syncedAt)}; puedes seguir capturando. Lo nuevo de Odoo aparecerá cuando vuelva.`;
 
 // Avisos que aplican cuando el catálogo ya cargó pero le faltan datos.
 const CATALOG_GAPS = [
@@ -43,6 +49,11 @@ export default function CatalogStatus({ catalog, list, loading, error, onReload 
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
+      {!loading && usesBackup(catalog) && (
+        <p className={blockNote} role="status">
+          {backupNote(catalog)}
+        </p>
+      )}
       {gaps.map(([, message]) => (
         <p key={message} className={blockNote}>
           {message}

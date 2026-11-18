@@ -21,7 +21,7 @@ export default function RequestForm({
   reloadCatalog,
   onSave,
   onAddSupplier,
-  onLoadProducts,
+  productSource,
   onReadRecipeImage,
 }) {
   const form = useRequestForm({ catalog, catalogLoading, connected, onSave, onReadRecipeImage });
@@ -55,7 +55,7 @@ export default function RequestForm({
           note="Elige la categoría y toca el producto. También puedes subir la foto de la receta."
           grid={false}
         >
-          <ProductFields form={form} onLoad={onLoadProducts} />
+          <ProductFields form={form} source={productSource} />
         </FormSection>
         {hasErrors && (
           <p className="mx-6 mb-5 flex items-center gap-2 text-xs text-gab-bad" role="alert">

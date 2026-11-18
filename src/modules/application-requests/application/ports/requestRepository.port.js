@@ -12,6 +12,8 @@
  * @property {(id: string, remission: Object) => Promise<Object>} uploadRemission
  * @property {(id: string, status: string) => Promise<Object>} reviewRemission
  * @property {() => Promise<Array>} productGroups
+ * @property {() => Promise<Array>} productTypes
+ * @property {(typeId: number) => Promise<Array>} productsOfType
  * @property {(file: File) => Promise<Object>} uploadRecipeImage
  * @property {(id: string, fileName: string) => Promise<Object>} downloadRecipeImage
  * @property {() => Promise<Object>} cycleRates
