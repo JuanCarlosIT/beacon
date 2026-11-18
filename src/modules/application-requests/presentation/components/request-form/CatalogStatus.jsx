@@ -8,10 +8,10 @@ const statusText = ({ loading, error }) =>
     ? 'Cargando Odoo…'
     : error || 'Selecciona ciclo → zona → predio. El cultivo se completa desde Odoo.';
 
-// Odoo no respondió y se está trabajando con la copia guardada.
+// No se pudo leer Odoo (sin conexión, clave rechazada…) y se trabaja con la copia guardada.
 const usesBackup = (catalog) => catalog?.source === 'respaldo';
 const backupNote = (catalog) =>
-  `Odoo no responde. Se muestran los datos guardados el ${formatDateTime(catalog.syncedAt)}; puedes seguir capturando. Lo nuevo de Odoo aparecerá cuando vuelva.`;
+  `${catalog.sourceReason || 'Odoo no responde.'} Mientras tanto se muestran los datos guardados el ${formatDateTime(catalog.syncedAt)}: puedes seguir capturando. Lo nuevo de Odoo aparecerá cuando se restablezca.`;
 
 // Avisos que aplican cuando el catálogo ya cargó pero le faltan datos.
 const CATALOG_GAPS = [
