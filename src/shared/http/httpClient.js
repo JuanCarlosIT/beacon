@@ -5,9 +5,18 @@ const SPREADSHEET = 'application/vnd.openxmlformats-officedocument.spreadsheetml
 // Le dice al backend qué vista está en uso (demo local: elige el usuario de prueba).
 // /validar es la vista del gestor (remisiones y OCM); lo demás es la de quien captura.
 const VISTAS = ['validar'];
+// Usuario de la app principal que está usando el módulo (lo fija quien monta el módulo). Con él,
+// el backend decide el perfil; sin él, manda la dirección.
+let appUser = null;
+export function setAppUser(user) {
+  appUser = user || null;
+}
 const viewHeader = () => {
   const page = (globalThis.location?.pathname ?? '').replace(/^\/+|\/+$/g, '');
-  return { 'X-GAB-Vista': VISTAS.includes(page) ? page : 'captura' };
+  return {
+    'X-GAB-Vista': VISTAS.includes(page) ? page : 'captura',
+    ...(appUser ? { 'X-GAB-Usuario': appUser } : {}),
+  };
 };
 
 // Mensaje para el usuario cuando la respuesta no sirve.

@@ -10,6 +10,8 @@ export function createRequestUseCases(repository) {
       return { connected: true, rows: await repository.list(), error: '' };
     },
     currentUser: async () => (await repository.currentUser()).user,
+    // { user, accessRequired, unknownUser } tal como lo ve el servidor.
+    session: () => repository.currentUser(),
     // true si esta vista pide clave y todavía no se ha escrito en esta sesión.
     accessRequired: async () => (await repository.currentUser()).accessRequired === true,
     enterAccessKey: (key) => repository.enterAccessKey(key.trim()),
